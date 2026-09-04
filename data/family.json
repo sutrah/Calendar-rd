@@ -1,0 +1,6 @@
+{
+  "name": "Famille",
+  "events": [
+    { "id": "fam-example", "date": "2026-09-05", "start": "18:00", "end": "19:00", "title": "Exemple : RDV dentiste", "who": "Loïse", "location": "", "example": true }
+  ]
+}

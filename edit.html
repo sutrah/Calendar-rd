@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Modifier — Calendrier famille</title>
+<meta name="theme-color" content="#2563eb" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-row">
+    <h1>✏️ Modifier</h1>
+    <a href="index.html" class="icon-btn" title="Retour au calendrier" style="text-decoration:none;">←</a>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button data-tab="soren" class="active">Sorène</button>
+    <button data-tab="loise">Loïse</button>
+    <button data-tab="famille">Famille</button>
+  </nav>
+</header>
+
+<main id="main">
+  <div class="empty-state">Chargement…</div>
+</main>
+
+<footer class="app-footer">
+  Après modification, cliquez sur « Télécharger » puis remplacez le fichier<br>correspondant dans <code>data/</code> sur votre hébergement FTP.
+</footer>
+
+<script src="js/dates.js"></script>
+<script src="js/editor.js"></script>
+</body>
+</html>

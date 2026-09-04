@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Calendrier famille</title>
+<meta name="theme-color" content="#2563eb" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<link rel="icon" href="icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Calendrier" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-row">
+    <h1>📅 Calendrier famille</h1>
+    <button id="subscribeBtn" class="icon-btn" title="Activer les notifications">🔔</button>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button data-tab="soren" class="active">Sorène</button>
+    <button data-tab="loise">Loïse</button>
+    <button data-tab="famille">Famille</button>
+  </nav>
+</header>
+
+<main id="main">
+  <div class="empty-state">Chargement…</div>
+</main>
+
+<footer class="app-footer">
+  <a href="edit.html">✏️ Modifier les emplois du temps</a>
+</footer>
+
+<script src="js/colors.js"></script>
+<script src="js/dates.js"></script>
+<script src="js/holidays.js"></script>
+<script src="js/push.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
