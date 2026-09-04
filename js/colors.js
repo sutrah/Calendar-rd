@@ -16,6 +16,10 @@ const SUBJECT_COLORS = [
   [/scientifique/i, '#0d9488'],
   [/th[eé][aâ]tre/i, '#be123c'],
   [/moral.*civique/i, '#6b7280'],
+  [/cha\b|horaire am[ée]nag/i, '#ca8a04'],
+  [/hockey/i, '#0369a1'],
+  [/taekwondo|taek.?wondo/i, '#be185d'],
+  [/muay.?thai|moa[iï].?thai/i, '#9a3412'],
 ];
 
 function colorForSubject(subject, fallback) {

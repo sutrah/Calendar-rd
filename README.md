@@ -14,7 +14,7 @@ simplement tous les fichiers de ce dossier par FTP à la racine de votre héberg
 
 Le site ne nécessite aucun mot de passe : ne partagez pas l'URL en dehors de la famille.
 
-## Emplois du temps de Sorène et Loïse
+## Emplois du temps de Sören et Loïse
 
 Les emplois du temps dans `data/soren.json` et `data/loise.json` ont été saisis à partir
 des photos fournies, mais **ils sont marqués « à vérifier »** (bannière orange visible sur
@@ -23,12 +23,21 @@ le site) car certaines cases étaient difficiles à lire avec certitude sur les 
 qui doit l'être, puis cliquer sur « Marquer comme vérifié » pour faire disparaître la
 bannière.
 
+Un bouton **Jour / Semaine** en haut de chaque onglet permet de basculer entre l'agenda
+d'une seule journée et la vue de toute la semaine.
+
+Les activités extrascolaires sont incluses : pour Sören, la Classe Horaire Aménagé (CHA,
+à partir du 24/09/2026) et le hockey (à partir du 07/09/2026) ; pour Loïse, le taekwondo
+(mercredi soir et samedi matin) et le Muay Thaï (jeudi soir). Un cours « à partir du... »
+n'apparaît dans le calendrier qu'à compter de cette date — vous pouvez ajouter ce type de
+date de démarrage à n'importe quel cours via la page Modifier.
+
 ## Modifier les emplois du temps (page « Modifier »)
 
 Le site n'ayant pas de base de données (uniquement du FTP), l'édition fonctionne ainsi :
 
 1. Ouvrez `edit.html` (lien « ✏️ Modifier les emplois du temps » en bas du calendrier).
-2. Choisissez l'onglet (Sorène / Loïse / Famille), faites vos changements — ils sont
+2. Choisissez l'onglet (Sören / Loïse / Famille), faites vos changements — ils sont
    sauvegardés automatiquement dans le navigateur (brouillon) au fur et à mesure.
 3. Cliquez sur **⬇️ Télécharger** : ça génère le fichier `soren.json` / `loise.json` /
    `family.json` mis à jour.
@@ -75,7 +84,7 @@ Configuration (à faire une seule fois) :
 ## Structure des fichiers
 
 ```
-index.html          Page principale (onglets Sorène / Loïse / Famille)
+index.html          Page principale (onglets Sören / Loïse / Famille)
 edit.html            Page d'édition
 css/style.css        Styles (mobile d'abord, thème clair/sombre automatique)
 js/app.js            Affichage du calendrier
@@ -84,7 +93,7 @@ js/holidays.js        Jours fériés + vacances Zone B
 js/colors.js          Couleurs par matière
 js/dates.js            Utilitaires de dates
 js/push.js             Notifications OneSignal
-data/soren.json        Emploi du temps de Sorène
+data/soren.json        Emploi du temps de Sören
 data/loise.json        Emploi du temps de Loïse
 data/family.json       Événements famille
 manifest.json           Pour l'ajout à l'écran d'accueil

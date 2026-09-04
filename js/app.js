@@ -4,6 +4,7 @@ const state = {
   tab: 'soren',
   selectedDate: null,
   data: {},
+  view: 'jour', // 'jour' | 'semaine'
 };
 
 async function loadData() {
@@ -31,6 +32,7 @@ function slotsForDate(child, date) {
   );
   const base = (child.slots || [])
     .filter((s) => s.day === dow && !cancelIds.has(s.id))
+    .filter((s) => (!s.from || iso >= s.from) && (!s.until || iso <= s.until))
     .map((s) => ({ ...s, added: false }));
   const additions = (child.exceptions || [])
     .filter((e) => e.date === iso && e.subject)
@@ -40,16 +42,22 @@ function slotsForDate(child, date) {
   return all;
 }
 
+/** Jours de la semaine à afficher pour cet enfant : lundi-vendredi, + samedi si une activité y est prévue. */
+function getChildDays(child) {
+  const hasSaturday = (child.slots || []).some((s) => s.day === 'samedi');
+  return hasSaturday ? [...SCHOOL_DAYS, 'samedi'] : SCHOOL_DAYS;
+}
+
 function renderTabs() {
   document.querySelectorAll('#tabs button').forEach((btn) => {
     btn.classList.toggle('active', btn.dataset.tab === state.tab);
   });
 }
 
-function renderDaySelector(monday) {
+function renderDaySelector(monday, numDays) {
   const wrap = document.createElement('div');
   wrap.className = 'day-selector';
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < numDays; i++) {
     const d = addDays(monday, i);
     const iso = toISO(d);
     const chip = document.createElement('div');
@@ -63,6 +71,22 @@ function renderDaySelector(monday) {
     });
     wrap.appendChild(chip);
   }
+  return wrap;
+}
+
+function renderViewToggle() {
+  const wrap = document.createElement('div');
+  wrap.className = 'view-toggle';
+  ['jour', 'semaine'].forEach((v) => {
+    const btn = document.createElement('button');
+    btn.textContent = v === 'jour' ? 'Jour' : 'Semaine';
+    btn.className = state.view === v ? 'active' : '';
+    btn.addEventListener('click', () => {
+      state.view = v;
+      render();
+    });
+    wrap.appendChild(btn);
+  });
   return wrap;
 }
 
@@ -103,10 +127,50 @@ function slotCard(slot) {
   return card;
 }
 
+function renderWeekView(main, child, monday, numDays) {
+  for (let i = 0; i < numDays; i++) {
+    const d = addDays(monday, i);
+    const iso = toISO(d);
+    const isToday = iso === toISO(startOfDay(new Date()));
+
+    const dayWrap = document.createElement('div');
+    dayWrap.className = 'week-day';
+    const header = document.createElement('div');
+    header.className = 'week-day-header' + (isToday ? ' today' : '');
+    header.innerHTML = `<span>${formatLongDate(d)}</span>${isToday ? '<span class="today-badge">Aujourd’hui</span>' : ''}`;
+    dayWrap.appendChild(header);
+
+    const ferie = ferieDuJour(iso);
+    const vacance = vacanceDuJour(iso);
+    if (ferie || vacance) {
+      const note = document.createElement('div');
+      note.className = 'week-day-note';
+      note.textContent = ferie ? `🎉 ${ferie.label}` : `🏖️ ${vacance.label}`;
+      dayWrap.appendChild(note);
+    } else {
+      const slots = slotsForDate(child, d);
+      if (slots.length === 0) {
+        const note = document.createElement('div');
+        note.className = 'week-day-note muted';
+        note.textContent = 'Pas de cours';
+        dayWrap.appendChild(note);
+      } else {
+        const list = document.createElement('div');
+        list.className = 'agenda-list compact';
+        slots.forEach((s) => list.appendChild(slotCard(s)));
+        dayWrap.appendChild(list);
+      }
+    }
+    main.appendChild(dayWrap);
+  }
+}
+
 function renderChildTab(main, child) {
   const monday = getMonday(state.selectedDate);
+  const numDays = getChildDays(child).length;
+
   main.appendChild(renderWeekNav(monday));
-  main.appendChild(renderDaySelector(monday));
+  main.appendChild(renderViewToggle());
 
   if (child.reviewed === false) {
     const banner = document.createElement('div');
@@ -114,6 +178,13 @@ function renderChildTab(main, child) {
     banner.innerHTML = `⚠️ <span>Cet emploi du temps est une première saisie à vérifier. Corrigez-le via <a href="edit.html">Modifier</a>, puis marquez-le comme vérifié.</span>`;
     main.appendChild(banner);
   }
+
+  if (state.view === 'semaine') {
+    renderWeekView(main, child, monday, numDays);
+    return;
+  }
+
+  main.appendChild(renderDaySelector(monday, numDays));
 
   const iso = toISO(state.selectedDate);
   const ferie = ferieDuJour(iso);

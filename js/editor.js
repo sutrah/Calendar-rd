@@ -2,7 +2,8 @@
  * puis génère un fichier à télécharger pour remplacement via FTP. */
 
 const FILES = { soren: 'data/soren.json', loise: 'data/loise.json', famille: 'data/family.json' };
-const LABELS = { soren: 'Sorène', loise: 'Loïse', famille: 'Famille' };
+const LABELS = { soren: 'Sören', loise: 'Loïse', famille: 'Famille' };
+const EDITOR_DAYS = [...SCHOOL_DAYS, 'samedi'];
 
 const state = {
   activeTab: 'soren',
@@ -71,8 +72,9 @@ function renderChildEditor(key) {
     : `<span class="tag-verified tag-unverified">⚠️ À vérifier</span>`;
 
   let daysHtml = '';
-  for (const day of SCHOOL_DAYS) {
+  for (const day of EDITOR_DAYS) {
     const slots = d.slots.filter((s) => s.day === day).sort((a, b) => a.start.localeCompare(b.start));
+    if (day === 'samedi' && slots.length === 0) continue; // pas de samedi si non utilisé
     daysHtml += `<div class="section-title">${day}</div>`;
     if (slots.length === 0) {
       daysHtml += `<div class="empty-state" style="padding:8px;">Aucun cours</div>`;
@@ -83,6 +85,7 @@ function renderChildEditor(key) {
           <div>
             <strong>${s.start}–${s.end} ${s.subject}</strong>${s.group ? ` <span class="slot-group">${s.group}</span>` : ''}<br>
             <span style="font-size:13px;color:var(--text-muted);">${[s.teacher, s.room].filter(Boolean).join(' · ') || '—'}</span>
+            ${s.from ? `<br><span style="font-size:12px;color:var(--accent);">à partir du ${s.from.split('-').reverse().join('/')}</span>` : ''}
           </div>
           <div class="list-item-actions">
             <button data-action="edit-slot" data-key="${key}" data-id="${s.id}" title="Modifier">✎</button>
@@ -133,7 +136,7 @@ function renderChildEditor(key) {
         <div class="field">
           <label>Jour</label>
           <select name="day">
-            ${SCHOOL_DAYS.map((day) => `<option value="${day}" ${editing && editing.day === day ? 'selected' : ''}>${day}</option>`).join('')}
+            ${EDITOR_DAYS.map((day) => `<option value="${day}" ${editing && editing.day === day ? 'selected' : ''}>${day}</option>`).join('')}
           </select>
         </div>
         <div class="row-2">
@@ -146,6 +149,7 @@ function renderChildEditor(key) {
           <div class="field"><label>Salle</label><input type="text" name="room" value="${editing ? editing.room || '' : ''}"></div>
         </div>
         <div class="field"><label>Groupe (optionnel, ex. Q1)</label><input type="text" name="group" value="${editing ? editing.group || '' : ''}"></div>
+        <div class="field"><label>Actif à partir du (optionnel — laisser vide si toutes les semaines)</label><input type="date" name="from" value="${editing ? editing.from || '' : ''}"></div>
         <button type="submit" class="btn btn-primary btn-block">${editing ? 'Enregistrer les modifications' : 'Ajouter ce cours'}</button>
         ${editing ? `<button type="button" class="btn btn-secondary btn-block" data-action="cancel-edit-slot" style="margin-top:8px;">Annuler la modification</button>` : ''}
       </form>
@@ -227,7 +231,7 @@ function renderFamilleEditor() {
         </div>
         <div class="field"><label>Titre</label><input type="text" name="title" value="${editing ? editing.title : ''}" placeholder="ex. RDV dentiste" required></div>
         <div class="row-2">
-          <div class="field"><label>Concerne</label><input type="text" name="who" value="${editing ? editing.who || '' : ''}" placeholder="ex. Sorène"></div>
+          <div class="field"><label>Concerne</label><input type="text" name="who" value="${editing ? editing.who || '' : ''}" placeholder="ex. Sören"></div>
           <div class="field"><label>Lieu (optionnel)</label><input type="text" name="location" value="${editing ? editing.location || '' : ''}"></div>
         </div>
         <button type="submit" class="btn btn-primary btn-block">${editing ? 'Enregistrer' : 'Ajouter'}</button>
@@ -319,6 +323,8 @@ document.getElementById('main').addEventListener('submit', (e) => {
     };
     const group = fd.get('group').trim();
     if (group) slot.group = group;
+    const from = fd.get('from');
+    if (from) slot.from = from;
     const slots = state.datasets[key].slots;
     if (id) {
       const idx = slots.findIndex((s) => s.id === id);

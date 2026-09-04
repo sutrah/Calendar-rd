@@ -30,7 +30,11 @@
     { "id": "lo-ve-1", "day": "vendredi", "start": "09:00", "end": "11:00", "subject": "Physique-Chimie", "teacher": "L'Herroux B.", "room": "" },
     { "id": "lo-ve-2", "day": "vendredi", "start": "11:00", "end": "12:00", "subject": "Maths Complémentaire", "teacher": "", "room": "" },
     { "id": "lo-ve-3", "day": "vendredi", "start": "14:00", "end": "15:00", "subject": "Anglais LV1", "teacher": "Kerebel S.", "room": "232" },
-    { "id": "lo-ve-4", "day": "vendredi", "start": "15:00", "end": "18:00", "subject": "Théâtre", "teacher": "Gouletquer P.", "room": "101, Audio-Amphi" }
+    { "id": "lo-ve-4", "day": "vendredi", "start": "15:00", "end": "18:00", "subject": "Théâtre", "teacher": "Gouletquer P.", "room": "101, Audio-Amphi" },
+
+    { "id": "lo-tkd-me", "day": "mercredi", "start": "18:30", "end": "20:30", "subject": "Taekwondo", "teacher": "", "room": "" },
+    { "id": "lo-tkd-sa", "day": "samedi", "start": "10:30", "end": "12:30", "subject": "Taekwondo", "teacher": "", "room": "" },
+    { "id": "lo-mt-je", "day": "jeudi", "start": "18:00", "end": "20:00", "subject": "Muay Thai", "teacher": "", "room": "" }
   ],
   "exceptions": []
 }
