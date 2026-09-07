@@ -1,16 +1,18 @@
 # Calendrier famille
 
-Site statique (HTML/CSS/JS, sans base de données ni serveur) à héberger en uploadant
-simplement tous les fichiers de ce dossier par FTP à la racine de votre hébergement.
+Site statique (HTML/CSS/JS, sans base de données ni serveur) hébergé en FTP.
 
 ## Mise en ligne
 
-1. Uploadez **tout le contenu** de ce dossier (en gardant la structure des sous-dossiers
-   `css/`, `js/`, `data/`, `icons/`, et les fichiers `index.html`, `edit.html`,
-   `manifest.json`, `OneSignalSDKWorker.js`) à la racine de votre hébergement FTP.
-2. Ouvrez l'URL du site sur un mobile → ajoutez-le à l'écran d'accueil (bouton
-   Partager > « Sur l'écran d'accueil ») pour un rendu plein écran façon application,
-   et pour que les notifications fonctionnent sur iPhone/iPad.
+Le déploiement est **automatique** : `.github/workflows/deploy.yml` envoie tout le site
+(sauf `data/`, voir plus bas) en FTP à chaque push sur la branche
+`claude/family-calendar-tabs-8fh8zj`. Pas d'action manuelle nécessaire pour le code —
+uploader par FTP à la main n'est plus utile que pour `data/*.json` (voir la section
+« Modifier les emplois du temps »).
+
+Sur un mobile, ouvrez l'URL du site → ajoutez-le à l'écran d'accueil (bouton
+Partager > « Sur l'écran d'accueil ») pour un rendu plein écran façon application,
+et pour que les notifications fonctionnent sur iPhone/iPad.
 
 Le site ne nécessite aucun mot de passe : ne partagez pas l'URL en dehors de la famille.
 
@@ -42,7 +44,9 @@ date de démarrage à n'importe quel cours via la page Modifier.
 
 ## Modifier les emplois du temps (page « Modifier »)
 
-Le site n'ayant pas de base de données (uniquement du FTP), l'édition fonctionne ainsi :
+Le dossier `data/` est volontairement **exclu du déploiement automatique** (voir
+« Mise en ligne ») pour ne pas écraser vos modifications ni les devoirs Pronote à chaque
+push. L'édition reste donc manuelle :
 
 1. Ouvrez `edit.html` (lien « ✏️ Modifier les emplois du temps » en bas du calendrier).
 2. Choisissez l'onglet (Sören / Loïse / Famille), faites vos changements — ils sont
@@ -51,6 +55,9 @@ Le site n'ayant pas de base de données (uniquement du FTP), l'édition fonction
    `family.json` mis à jour.
 4. Remplacez ce fichier dans le dossier `data/` de votre hébergement via votre client FTP.
 5. Rechargez le site : les changements apparaissent pour toute la famille.
+
+Pensez aussi à me transmettre (ou committer vous-même) ce fichier mis à jour si vous
+voulez qu'il reste synchronisé avec le dépôt GitHub sur le long terme.
 
 Deux types de modifications sont possibles :
 - **Cours réguliers** : la base de l'emploi du temps hebdomadaire (répété chaque semaine).
@@ -142,5 +149,6 @@ manifest.json           Pour l'ajout à l'écran d'accueil
 OneSignalSDKWorker.js    Requis par OneSignal
 icons/                   Icônes de l'application
 scripts/fetch_devoirs.py     Script Pronote → JSON, lancé par la GitHub Action
-.github/workflows/devoirs.yml  La GitHub Action (planification + déploiement FTP)
+.github/workflows/devoirs.yml  Récupère les devoirs Pronote et les dépose en FTP
+.github/workflows/deploy.yml   Déploie tout le site (sauf data/) en FTP à chaque push
 ```
