@@ -88,6 +88,10 @@ directement en FTP dans `data/devoirs-soren.json` et `data/devoirs-loise.json`. 
 site, ils apparaissent automatiquement sous le planning du jour (**vue Jour uniquement**,
 pas la vue Semaine), pour le jour suivant celui affiché.
 
+Chaque devoir a une case à cocher pour le marquer fait (avec un petit effet visuel). Cet
+état coché est stocké **localement dans le navigateur** (localStorage) : il n'est donc pas
+partagé entre les appareils de la famille, chacun garde sa propre coche sur son téléphone.
+
 Secrets GitHub nécessaires (Settings → Secrets and variables → Actions), déjà créés :
 `PRONOTE_URL`, `PRONOTE_USERNAME`, `PRONOTE_PASSWORD` (votre compte **parent** Pronote,
 qui voit les deux enfants), `FTP_USERNAME`, `FTP_PASSWORD`. L'hôte FTP et le dossier

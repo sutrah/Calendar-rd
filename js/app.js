@@ -249,15 +249,49 @@ function renderChildTab(main, child) {
     main.appendChild(list);
   }
 
-  const devoirsData = child === state.data.soren ? state.data.devoirsSoren : state.data.devoirsLoise;
-  renderDevoirsSection(main, devoirsData, state.selectedDate);
+  const childKey = child === state.data.soren ? 'soren' : 'loise';
+  const devoirsData = childKey === 'soren' ? state.data.devoirsSoren : state.data.devoirsLoise;
+  renderDevoirsSection(main, childKey, devoirsData, state.selectedDate);
 }
 
-function renderDevoirsSection(main, devoirsData, selectedDate) {
+/* --- Devoirs : coché "fait" persisté localement (par appareil) --- */
+
+function hwStorageKey(childKey) {
+  return `devoirs_done_${childKey}`;
+}
+
+function getDoneOverrides(childKey) {
+  try {
+    return JSON.parse(localStorage.getItem(hwStorageKey(childKey))) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function setDoneOverride(childKey, key, done) {
+  const overrides = getDoneOverrides(childKey);
+  overrides[key] = done;
+  try {
+    localStorage.setItem(hwStorageKey(childKey), JSON.stringify(overrides));
+  } catch (e) {
+    /* stockage indisponible (navigation privée...) : tant pis, pas de persistance */
+  }
+}
+
+function hwKey(dateIso, hw) {
+  return `${dateIso}__${hw.subject}__${hw.description}`;
+}
+
+const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 10 18 20 6"></polyline></svg>';
+
+function renderDevoirsSection(main, childKey, devoirsData, selectedDate) {
   if (!devoirsData || !devoirsData.byDate) return;
   const targetDate = addDays(selectedDate, 1);
-  const items = devoirsData.byDate[toISO(targetDate)] || [];
+  const targetIso = toISO(targetDate);
+  const items = devoirsData.byDate[targetIso] || [];
   if (items.length === 0) return;
+
+  const overrides = getDoneOverrides(childKey);
 
   const title = document.createElement('div');
   title.className = 'section-title';
@@ -267,13 +301,41 @@ function renderDevoirsSection(main, devoirsData, selectedDate) {
   const list = document.createElement('div');
   list.className = 'agenda-list';
   items.forEach((hw) => {
+    const key = hwKey(targetIso, hw);
+    const done = key in overrides ? overrides[key] : !!hw.done;
+
     const card = document.createElement('div');
-    card.className = 'homework-card' + (hw.done ? ' done' : '');
+    card.className = 'homework-card' + (done ? ' done' : '');
     card.style.setProperty('--card-color', colorForSubject(hw.subject));
-    card.innerHTML = `
-      <p class="homework-subject">${escapeHtml(hw.subject)}${hw.done ? '<span class="homework-done-badge">Fait</span>' : ''}</p>
+
+    const check = document.createElement('button');
+    check.type = 'button';
+    check.className = 'hw-check' + (done ? ' checked' : '');
+    check.setAttribute('aria-label', done ? 'Marquer comme non fait' : 'Marquer comme fait');
+    check.innerHTML = CHECK_SVG;
+
+    const body = document.createElement('div');
+    body.className = 'hw-body';
+    body.innerHTML = `
+      <p class="homework-subject">${escapeHtml(hw.subject)}</p>
       ${hw.description ? `<p class="homework-desc">${escapeHtml(hw.description).replace(/\n/g, '<br>')}</p>` : ''}
     `;
+
+    check.addEventListener('click', () => {
+      const newDone = !card.classList.contains('done');
+      setDoneOverride(childKey, key, newDone);
+      card.classList.toggle('done', newDone);
+      check.classList.toggle('checked', newDone);
+      check.setAttribute('aria-label', newDone ? 'Marquer comme non fait' : 'Marquer comme fait');
+      if (newDone) {
+        check.classList.remove('pop');
+        void check.offsetWidth; // relance l'animation même si déjà jouée
+        check.classList.add('pop');
+        setTimeout(() => check.classList.remove('pop'), 500);
+      }
+    });
+
+    card.append(check, body);
     list.appendChild(card);
   });
   main.appendChild(list);

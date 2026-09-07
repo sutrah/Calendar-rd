@@ -402,12 +402,22 @@ main {
   border-left: 5px solid var(--card-color, var(--accent));
   border-radius: var(--radius);
   padding: 12px 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.hw-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .homework-subject {
   font-weight: 700;
   font-size: 14px;
   margin: 0 0 4px 0;
+  transition: opacity 0.3s ease;
 }
 
 .homework-desc {
@@ -415,23 +425,85 @@ main {
   color: var(--text-muted);
   margin: 0;
   white-space: pre-wrap;
+  transition: opacity 0.3s ease;
 }
 
 .homework-card.done {
-  opacity: 0.55;
+  background: rgba(22, 163, 74, 0.08);
+  border-left-color: #16a34a;
 }
 
-.homework-done-badge {
-  display: inline-block;
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  background: #dcfce7;
-  color: #16a34a;
-  border-radius: 999px;
-  padding: 2px 8px;
-  margin-left: 6px;
-  vertical-align: middle;
+.homework-card.done .homework-subject,
+.homework-card.done .homework-desc {
+  text-decoration: line-through;
+  text-decoration-color: rgba(22, 163, 74, 0.55);
+  opacity: 0.6;
+}
+
+.hw-check {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  margin-top: 1px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: transparent;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease, color 0.15s ease;
+}
+
+.hw-check:active {
+  transform: scale(0.86);
+}
+
+.hw-check svg {
+  width: 15px;
+  height: 15px;
+}
+
+.hw-check.checked {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+
+.hw-check.pop {
+  animation: hw-check-pop 0.45s ease;
+}
+
+.hw-check.pop::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid #16a34a;
+  animation: hw-ring 0.5s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes hw-check-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35); }
+  60% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+@keyframes hw-ring {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hw-check.pop,
+  .hw-check.pop::after {
+    animation: none;
+  }
 }
 
 .empty-state {
