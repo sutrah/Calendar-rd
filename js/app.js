@@ -120,15 +120,26 @@ function renderWeekNav(monday, showParityBadge) {
   return wrap;
 }
 
-function slotCard(slot) {
+/** Le créneau est-il en train de se dérouler maintenant (pour le jour affiché) ? */
+function isSlotNow(slot, date) {
+  const now = new Date();
+  if (toISO(date) !== toISO(now)) return false;
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const [sh, sm] = slot.start.split(':').map(Number);
+  const [eh, em] = slot.end.split(':').map(Number);
+  return nowMin >= sh * 60 + sm && nowMin < eh * 60 + em;
+}
+
+function slotCard(slot, date) {
   const card = document.createElement('div');
-  card.className = 'slot-card' + (slot.added ? ' added' : '');
+  const isNow = isSlotNow(slot, date);
+  card.className = 'slot-card' + (slot.added ? ' added' : '') + (isNow ? ' now' : '');
   card.style.setProperty('--card-color', colorForSubject(slot.subject));
   const meta = [slot.teacher, slot.room].filter(Boolean).join(' · ');
   card.innerHTML = `
     <div class="slot-time">${slot.start}<br>${slot.end}</div>
     <div class="slot-info">
-      <p class="slot-subject">${slot.subject}${slot.group ? `<span class="slot-group">${slot.group}</span>` : ''}</p>
+      <p class="slot-subject">${slot.subject}${slot.group ? `<span class="slot-group">${slot.group}</span>` : ''}${isNow ? `<span class="now-badge">Maintenant</span>` : ''}</p>
       ${meta ? `<p class="slot-meta">${meta}</p>` : ''}
     </div>
   `;
@@ -165,7 +176,7 @@ function renderWeekView(main, child, monday, numDays) {
       } else {
         const list = document.createElement('div');
         list.className = 'agenda-list compact';
-        slots.forEach((s) => list.appendChild(slotCard(s)));
+        slots.forEach((s) => list.appendChild(slotCard(s, d)));
         dayWrap.appendChild(list);
       }
     }
@@ -222,7 +233,7 @@ function renderChildTab(main, child) {
     empty.textContent = vacance ? '' : 'Pas de cours prévu ce jour.';
     if (!vacance) list.appendChild(empty);
   } else {
-    slots.forEach((s) => list.appendChild(slotCard(s)));
+    slots.forEach((s) => list.appendChild(slotCard(s, state.selectedDate)));
   }
   main.appendChild(list);
 }
@@ -279,4 +290,5 @@ document.getElementById('tabs').addEventListener('click', (e) => {
   await loadData();
   render();
   initPush();
+  setInterval(render, 60000); // garde le repère "Maintenant" à jour
 })();
