@@ -80,6 +80,34 @@ Configuration (à faire une seule fois) :
 ⚠️ Sur iPhone/iPad, Safari exige que le site soit ajouté à l'écran d'accueil (voir
 « Mise en ligne » ci-dessus) avant que les notifications fonctionnent (iOS 16.4+).
 
+## Devoirs Pronote (automatique)
+
+Une GitHub Action tourne chaque matin (5h UTC), se connecte à Pronote avec votre compte
+parent, récupère les devoirs de Sören et Loïse pour les jours à venir, et les dépose
+directement en FTP dans `data/devoirs-soren.json` et `data/devoirs-loise.json`. Sur le
+site, ils apparaissent automatiquement sous le planning du jour (**vue Jour uniquement**,
+pas la vue Semaine), pour le jour suivant celui affiché.
+
+Secrets GitHub nécessaires (Settings → Secrets and variables → Actions), déjà créés :
+`PRONOTE_URL`, `PRONOTE_USERNAME`, `PRONOTE_PASSWORD` (votre compte **parent** Pronote,
+qui voit les deux enfants), `FTP_USERNAME`, `FTP_PASSWORD`. L'hôte FTP et le dossier
+distant (`/games/cal/data/`) sont écrits en clair dans
+`.github/workflows/devoirs.yml`.
+
+Points importants :
+- Cette intégration utilise **pronotepy**, une bibliothèque non-officielle (Pronote n'a
+  pas d'API publique). Elle est largement utilisée pour ce type d'automatisation
+  personnelle, mais Pronote change parfois son fonctionnement interne, ce qui peut casser
+  la connexion jusqu'à une mise à jour de la bibliothèque. Si les devoirs ne se mettent
+  plus à jour, allez dans l'onglet **Actions** du dépôt GitHub → « Devoirs Pronote » pour
+  voir l'erreur exacte, ou lancez-la manuellement (bouton « Run workflow »).
+- Vos identifiants Pronote ne sont utilisés que côté GitHub Actions (jamais envoyés au
+  navigateur) : ils ne sont pas visibles par qui visite le site.
+- Tant que l'Action n'a pas encore tourné une première fois (ou si elle échoue), la
+  section « Devoirs » n'apparaît simplement pas — ça ne bloque rien d'autre sur le site.
+- Les enfants sont reconnus par leur prénom (« Sören »/« Loïse », sans tenir compte des
+  accents) dans les noms Pronote de vos enfants rattachés au compte parent.
+
 ## Jours fériés & vacances scolaires
 
 - Les **jours fériés français** sont calculés automatiquement (`js/holidays.js`), aucune
@@ -104,7 +132,11 @@ js/push.js             Notifications OneSignal
 data/soren.json        Emploi du temps de Sören
 data/loise.json        Emploi du temps de Loïse
 data/family.json       Événements famille
+data/devoirs-soren.json  Devoirs de Sören (généré par la GitHub Action, pas à éditer)
+data/devoirs-loise.json  Devoirs de Loïse (généré par la GitHub Action, pas à éditer)
 manifest.json           Pour l'ajout à l'écran d'accueil
 OneSignalSDKWorker.js    Requis par OneSignal
 icons/                   Icônes de l'application
+scripts/fetch_devoirs.py     Script Pronote → JSON, lancé par la GitHub Action
+.github/workflows/devoirs.yml  La GitHub Action (planification + déploiement FTP)
 ```

@@ -7,13 +7,25 @@ const state = {
   view: 'jour', // 'jour' | 'semaine'
 };
 
+async function fetchJsonSafe(url) {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (e) {
+    return null;
+  }
+}
+
 async function loadData() {
-  const [soren, loise, famille] = await Promise.all([
+  const [soren, loise, famille, devoirsSoren, devoirsLoise] = await Promise.all([
     fetch('data/soren.json').then((r) => r.json()),
     fetch('data/loise.json').then((r) => r.json()),
     fetch('data/family.json').then((r) => r.json()),
+    fetchJsonSafe('data/devoirs-soren.json'),
+    fetchJsonSafe('data/devoirs-loise.json'),
   ]);
-  state.data = { soren, loise, famille };
+  state.data = { soren, loise, famille, devoirsSoren, devoirsLoise };
 }
 
 function initialSelectedDate() {
@@ -215,27 +227,60 @@ function renderChildTab(main, child) {
     b.className = 'vacances-banner';
     b.textContent = `🎉 Jour férié — ${ferie.label}`;
     main.appendChild(b);
-    return;
-  }
-  if (vacance) {
-    const b = document.createElement('div');
-    b.className = 'vacances-banner';
-    b.textContent = `🏖️ ${vacance.label} — reprise le ${formatLongDate(new Date(vacance.end))}`;
-    main.appendChild(b);
+  } else {
+    if (vacance) {
+      const b = document.createElement('div');
+      b.className = 'vacances-banner';
+      b.textContent = `🏖️ ${vacance.label} — reprise le ${formatLongDate(new Date(vacance.end))}`;
+      main.appendChild(b);
+    }
+
+    const slots = slotsForDate(child, state.selectedDate);
+    const list = document.createElement('div');
+    list.className = 'agenda-list';
+    if (slots.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = vacance ? '' : 'Pas de cours prévu ce jour.';
+      if (!vacance) list.appendChild(empty);
+    } else {
+      slots.forEach((s) => list.appendChild(slotCard(s, state.selectedDate)));
+    }
+    main.appendChild(list);
   }
 
-  const slots = slotsForDate(child, state.selectedDate);
+  const devoirsData = child === state.data.soren ? state.data.devoirsSoren : state.data.devoirsLoise;
+  renderDevoirsSection(main, devoirsData, state.selectedDate);
+}
+
+function renderDevoirsSection(main, devoirsData, selectedDate) {
+  if (!devoirsData || !devoirsData.byDate) return;
+  const targetDate = addDays(selectedDate, 1);
+  const items = devoirsData.byDate[toISO(targetDate)] || [];
+  if (items.length === 0) return;
+
+  const title = document.createElement('div');
+  title.className = 'section-title';
+  title.textContent = `📚 Devoirs pour ${formatLongDate(targetDate)}`;
+  main.appendChild(title);
+
   const list = document.createElement('div');
   list.className = 'agenda-list';
-  if (slots.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'empty-state';
-    empty.textContent = vacance ? '' : 'Pas de cours prévu ce jour.';
-    if (!vacance) list.appendChild(empty);
-  } else {
-    slots.forEach((s) => list.appendChild(slotCard(s, state.selectedDate)));
-  }
+  items.forEach((hw) => {
+    const card = document.createElement('div');
+    card.className = 'homework-card' + (hw.done ? ' done' : '');
+    card.style.setProperty('--card-color', colorForSubject(hw.subject));
+    card.innerHTML = `
+      <p class="homework-subject">${escapeHtml(hw.subject)}${hw.done ? '<span class="homework-done-badge">Fait</span>' : ''}</p>
+      ${hw.description ? `<p class="homework-desc">${escapeHtml(hw.description).replace(/\n/g, '<br>')}</p>` : ''}
+    `;
+    list.appendChild(card);
+  });
   main.appendChild(list);
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 function renderFamilleTab(main) {

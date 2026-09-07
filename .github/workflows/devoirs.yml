@@ -1,0 +1,39 @@
+name: Devoirs Pronote
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  fetch-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Installer les dépendances
+        run: pip install -r scripts/requirements.txt
+
+      - name: Récupérer les devoirs depuis Pronote
+        env:
+          PRONOTE_URL: ${{ secrets.PRONOTE_URL }}
+          PRONOTE_USERNAME: ${{ secrets.PRONOTE_USERNAME }}
+          PRONOTE_PASSWORD: ${{ secrets.PRONOTE_PASSWORD }}
+        run: python scripts/fetch_devoirs.py
+
+      - name: Déployer les devoirs en FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ftp.cluster026.hosting.ovh.net
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          local-dir: ./out/
+          server-dir: /games/cal/data/
+          dangerous-clean-slate: false
