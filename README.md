@@ -26,6 +26,14 @@ bannière.
 Un bouton **Jour / Semaine** en haut de chaque onglet permet de basculer entre l'agenda
 d'une seule journée et la vue de toute la semaine.
 
+L'emploi du temps de Sören alterne certains jours (lundi et mercredi) entre deux versions,
+« Semaine Q1 » et « Semaine Q2 », comme au collège. Le site calcule automatiquement quelle
+semaine s'applique (visible sous la date : « Semaine Q1/Q2 ») à partir du numéro de semaine
+ISO — vérifié sur les emplois du temps réels : semaine du 07/09/2026 = Q2, du 14/09/2026 =
+Q1, et ainsi de suite en alternance. Si l'établissement change un jour la référence
+(par exemple après une semaine de vacances), corrigez le champ « Alternance » d'un cours
+via la page Modifier.
+
 Les activités extrascolaires sont incluses : pour Sören, la Classe Horaire Aménagé (CHA,
 à partir du 24/09/2026) et le hockey (à partir du 07/09/2026) ; pour Loïse, le taekwondo
 (mercredi soir et samedi matin) et le Muay Thaï (jeudi soir). Un cours « à partir du... »

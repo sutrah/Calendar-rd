@@ -83,7 +83,7 @@ function renderChildEditor(key) {
       daysHtml += `
         <div class="list-item">
           <div>
-            <strong>${s.start}–${s.end} ${s.subject}</strong>${s.group ? ` <span class="slot-group">${s.group}</span>` : ''}<br>
+            <strong>${s.start}–${s.end} ${s.subject}</strong>${s.group ? ` <span class="slot-group">${s.group}</span>` : ''}${s.week ? ` <span class="slot-group">Semaine ${s.week}</span>` : ''}<br>
             <span style="font-size:13px;color:var(--text-muted);">${[s.teacher, s.room].filter(Boolean).join(' · ') || '—'}</span>
             ${s.from ? `<br><span style="font-size:12px;color:var(--accent);">à partir du ${s.from.split('-').reverse().join('/')}</span>` : ''}
           </div>
@@ -149,6 +149,14 @@ function renderChildEditor(key) {
           <div class="field"><label>Salle</label><input type="text" name="room" value="${editing ? editing.room || '' : ''}"></div>
         </div>
         <div class="field"><label>Groupe (optionnel, ex. Q1)</label><input type="text" name="group" value="${editing ? editing.group || '' : ''}"></div>
+        <div class="field">
+          <label>Alternance (semaines Q1/Q2, optionnel)</label>
+          <select name="week">
+            <option value="" ${editing && !editing.week ? 'selected' : ''}>Toutes les semaines</option>
+            <option value="Q1" ${editing && editing.week === 'Q1' ? 'selected' : ''}>Semaine Q1 seulement</option>
+            <option value="Q2" ${editing && editing.week === 'Q2' ? 'selected' : ''}>Semaine Q2 seulement</option>
+          </select>
+        </div>
         <div class="field"><label>Actif à partir du (optionnel — laisser vide si toutes les semaines)</label><input type="date" name="from" value="${editing ? editing.from || '' : ''}"></div>
         <button type="submit" class="btn btn-primary btn-block">${editing ? 'Enregistrer les modifications' : 'Ajouter ce cours'}</button>
         ${editing ? `<button type="button" class="btn btn-secondary btn-block" data-action="cancel-edit-slot" style="margin-top:8px;">Annuler la modification</button>` : ''}
@@ -323,6 +331,8 @@ document.getElementById('main').addEventListener('submit', (e) => {
     };
     const group = fd.get('group').trim();
     if (group) slot.group = group;
+    const week = fd.get('week');
+    if (week) slot.week = week;
     const from = fd.get('from');
     if (from) slot.from = from;
     const slots = state.datasets[key].slots;

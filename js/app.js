@@ -30,9 +30,11 @@ function slotsForDate(child, date) {
   const cancelIds = new Set(
     (child.exceptions || []).filter((e) => e.date === iso && e.cancel).map((e) => e.cancel)
   );
+  const parity = weekParity(date);
   const base = (child.slots || [])
     .filter((s) => s.day === dow && !cancelIds.has(s.id))
     .filter((s) => (!s.from || iso >= s.from) && (!s.until || iso <= s.until))
+    .filter((s) => !s.week || s.week === parity)
     .map((s) => ({ ...s, added: false }));
   const additions = (child.exceptions || [])
     .filter((e) => e.date === iso && e.subject)
@@ -90,7 +92,7 @@ function renderViewToggle() {
   return wrap;
 }
 
-function renderWeekNav(monday) {
+function renderWeekNav(monday, showParityBadge) {
   const wrap = document.createElement('div');
   wrap.className = 'week-nav';
   const prev = document.createElement('button');
@@ -108,6 +110,12 @@ function renderWeekNav(monday) {
   const label = document.createElement('div');
   label.className = 'label';
   label.textContent = formatWeekRange(monday);
+  if (showParityBadge) {
+    const badge = document.createElement('span');
+    badge.className = 'week-parity-badge';
+    badge.textContent = `Semaine ${weekParity(monday)}`;
+    label.appendChild(badge);
+  }
   wrap.append(prev, label, next);
   return wrap;
 }
@@ -168,8 +176,9 @@ function renderWeekView(main, child, monday, numDays) {
 function renderChildTab(main, child) {
   const monday = getMonday(state.selectedDate);
   const numDays = getChildDays(child).length;
+  const hasWeekAlternation = (child.slots || []).some((s) => s.week);
 
-  main.appendChild(renderWeekNav(monday));
+  main.appendChild(renderWeekNav(monday, hasWeekAlternation));
   main.appendChild(renderViewToggle());
 
   if (child.reviewed === false) {
