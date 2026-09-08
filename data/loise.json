@@ -2,7 +2,7 @@
   "name": "Loïse",
   "className": "Terminale (TC)",
   "school": "Lycée de l'Harteloire",
-  "reviewed": false,
+  "reviewed": true,
   "accent": "#db2777",
   "slots": [
     { "id": "lo-lu-2", "day": "lundi", "start": "09:00", "end": "11:00", "subject": "Sciences Vie & Terre", "teacher": "Stervinou L.", "room": "300" },

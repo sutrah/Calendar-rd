@@ -5,10 +5,12 @@ Site statique (HTML/CSS/JS, sans base de données ni serveur) hébergé en FTP.
 ## Mise en ligne
 
 Le déploiement est **automatique** : `.github/workflows/deploy.yml` envoie tout le site
-(sauf `data/`, voir plus bas) en FTP à chaque push sur la branche
-`claude/family-calendar-tabs-8fh8zj`. Pas d'action manuelle nécessaire pour le code —
-uploader par FTP à la main n'est plus utile que pour `data/*.json` (voir la section
-« Modifier les emplois du temps »).
+(y compris `data/*.json`) en FTP à chaque push sur la branche
+`claude/family-calendar-tabs-8fh8zj`. Plus besoin d'uploader quoi que ce soit à la main.
+
+⚠️ Le contenu de `data/` (emplois du temps, événements famille) vit désormais dans **git**,
+pas seulement sur le serveur FTP : un fichier édité et uploadé directement en FTP sans
+passer par git sera écrasé au prochain push. Voir « Modifier les emplois du temps ».
 
 Sur un mobile, ouvrez l'URL du site → ajoutez-le à l'écran d'accueil (bouton
 Partager > « Sur l'écran d'accueil ») pour un rendu plein écran façon application,
@@ -19,11 +21,8 @@ Le site ne nécessite aucun mot de passe : ne partagez pas l'URL en dehors de la
 ## Emplois du temps de Sören et Loïse
 
 Les emplois du temps dans `data/soren.json` et `data/loise.json` ont été saisis à partir
-des photos fournies, mais **ils sont marqués « à vérifier »** (bannière orange visible sur
-le site) car certaines cases étaient difficiles à lire avec certitude sur les photos
-(feuille inclinée / recadrée). Merci de les relire via la page **Modifier**, corriger ce
-qui doit l'être, puis cliquer sur « Marquer comme vérifié » pour faire disparaître la
-bannière.
+des documents fournis (photos, puis captures d'écran de l'EDT réel) et vérifiés — le champ
+`reviewed` est à `true`. Si vous repérez une erreur, corrigez-la via la page **Modifier**.
 
 Un bouton **Jour / Semaine** en haut de chaque onglet permet de basculer entre l'agenda
 d'une seule journée et la vue de toute la semaine.
@@ -44,20 +43,19 @@ date de démarrage à n'importe quel cours via la page Modifier.
 
 ## Modifier les emplois du temps (page « Modifier »)
 
-Le dossier `data/` est volontairement **exclu du déploiement automatique** (voir
-« Mise en ligne ») pour ne pas écraser vos modifications ni les devoirs Pronote à chaque
-push. L'édition reste donc manuelle :
+`data/*.json` est maintenant déployé automatiquement comme le reste du site (voir
+« Mise en ligne ») — ce qui veut dire que **git fait foi** : un fichier `data/` modifié
+directement en FTP sans passer par git sera écrasé au push suivant. Pour que vos
+modifications tiennent dans la durée, transmettez-moi le fichier téléchargé (ou son
+contenu) pour que je le committe, plutôt que de l'uploader vous-même en FTP.
 
 1. Ouvrez `edit.html` (lien « ✏️ Modifier les emplois du temps » en bas du calendrier).
 2. Choisissez l'onglet (Sören / Loïse / Famille), faites vos changements — ils sont
    sauvegardés automatiquement dans le navigateur (brouillon) au fur et à mesure.
 3. Cliquez sur **⬇️ Télécharger** : ça génère le fichier `soren.json` / `loise.json` /
    `family.json` mis à jour.
-4. Remplacez ce fichier dans le dossier `data/` de votre hébergement via votre client FTP.
-5. Rechargez le site : les changements apparaissent pour toute la famille.
-
-Pensez aussi à me transmettre (ou committer vous-même) ce fichier mis à jour si vous
-voulez qu'il reste synchronisé avec le dépôt GitHub sur le long terme.
+4. Envoyez-moi ce fichier pour que je le committe (le site se met à jour automatiquement),
+   ou committez-le vous-même directement sur GitHub.
 
 Deux types de modifications sont possibles :
 - **Cours réguliers** : la base de l'emploi du temps hebdomadaire (répété chaque semaine).

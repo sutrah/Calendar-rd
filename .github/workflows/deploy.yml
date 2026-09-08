@@ -28,4 +28,3 @@ jobs:
             .github/**
             scripts/**
             README.md
-            data/**

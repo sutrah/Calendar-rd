@@ -2,7 +2,7 @@
   "name": "Sören",
   "className": "5ème 3",
   "school": "Lycée de l'Harteloire",
-  "reviewed": false,
+  "reviewed": true,
   "accent": "#2563eb",
   "slots": [
     { "id": "so-lu-q2-1", "day": "lundi", "start": "08:00", "end": "09:00", "subject": "Physique-Chimie", "teacher": "Carron L.", "room": "320", "week": "Q2" },
