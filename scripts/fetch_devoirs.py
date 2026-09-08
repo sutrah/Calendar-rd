@@ -221,43 +221,62 @@ def fetch_notifications(client):
     print(f"Écrit {path} : {len(items)} notification(s)")
 
 
-def main():
-    url = os.environ["PRONOTE_URL"]
-    username = os.environ["PRONOTE_USERNAME"]
-    password = os.environ["PRONOTE_PASSWORD"]
-
-    client = pronotepy.ParentClient(url, username=username, password=password)
+def login():
+    """Nouvelle connexion Pronote. Pronote invalide la session ("La page a
+    expiré !") si trop de requêtes s'enchaînent sur un même identifiant de
+    page — on ouvre donc une session fraîche pour chaque section plutôt que
+    d'en réutiliser une seule pour tout (notifications + devoirs +
+    évaluations + moyennes × 2 enfants), ce qui faisait échouer les derniers
+    appels une fois qu'assez de requêtes s'étaient accumulées."""
+    client = pronotepy.ParentClient(
+        os.environ["PRONOTE_URL"],
+        username=os.environ["PRONOTE_USERNAME"],
+        password=os.environ["PRONOTE_PASSWORD"],
+    )
     if not client.logged_in:
-        print("Échec de connexion à Pronote (identifiants invalides ?)", file=sys.stderr)
-        sys.exit(1)
+        raise RuntimeError("Échec de connexion à Pronote (identifiants invalides ?)")
+    return client
 
-    # Chaque section est isolée : une erreur inattendue dans l'une (ex. une
-    # nouvelle version de pronotepy qui change un nom de champ) n'empêche pas
-    # les autres d'être écrites.
 
-    # Les notifications sont au niveau du compte parent, pas par enfant.
+def login_as_child(key):
+    client = login()
+    for child in client.children:
+        if child_key(child.name) == key:
+            client.set_child(child)
+            return client
+    raise RuntimeError(f"Enfant '{key}' introuvable sur ce compte Pronote")
+
+
+def list_child_keys():
+    client = login()
+    return {child_key(c.name) for c in client.children if child_key(c.name)}
+
+
+def main():
+    # Chaque section (et, pour les enfants, chaque catégorie de données) se
+    # connecte séparément et est protégée par son propre try/except : une
+    # erreur inattendue dans l'une n'empêche pas les autres d'être écrites.
+
     try:
-        fetch_notifications(client)
+        fetch_notifications(login())
     except Exception as e:
         print(f"[notifications] section entière ignorée (erreur : {e})", file=sys.stderr)
 
-    found = set()
-    for child in client.children:
-        key = child_key(child.name)
-        if key is None:
-            print(f"Enfant non reconnu, ignoré : {child.name!r}", file=sys.stderr)
+    try:
+        found = list_child_keys()
+    except Exception as e:
+        print(f"Impossible de lister les enfants du compte Pronote (erreur : {e})", file=sys.stderr)
+        sys.exit(1)
+
+    for key in ("soren", "loise"):
+        if key not in found:
+            print(f"Attention : aucun enfant trouvé pour '{key}' sur ce compte Pronote", file=sys.stderr)
             continue
-        client.set_child(child)
         for fn, label in ((fetch_devoirs, "devoirs"), (fetch_evaluations, "évaluations"), (fetch_moyennes, "moyennes")):
             try:
-                fn(client, key)
+                fn(login_as_child(key), key)
             except Exception as e:
                 print(f"[{label}] section ignorée pour {key} (erreur : {e})", file=sys.stderr)
-        found.add(key)
-
-    missing = {"soren", "loise"} - found
-    if missing:
-        print(f"Attention : aucun enfant trouvé pour {sorted(missing)} sur ce compte Pronote", file=sys.stderr)
 
 
 if __name__ == "__main__":
