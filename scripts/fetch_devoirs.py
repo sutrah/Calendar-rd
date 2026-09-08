@@ -55,6 +55,18 @@ def strip_html(text):
     return re.sub(r"\n{3,}", "\n\n", text).strip()
 
 
+def get_val(obj, name, default=None):
+    """getattr, mais appelle la valeur si pronotepy l'expose comme une méthode
+    plutôt qu'un attribut simple (ça varie selon les versions/objets)."""
+    val = getattr(obj, name, default)
+    if callable(val):
+        try:
+            val = val()
+        except TypeError:
+            pass  # ce n'était pas vraiment une méthode sans arguments : on garde tel quel
+    return val
+
+
 def write_json(name, payload):
     os.makedirs(OUT_DIR, exist_ok=True)
     path = os.path.join(OUT_DIR, name)
@@ -70,14 +82,18 @@ def fetch_devoirs(client, key):
     homeworks = client.homework(date_from=today, date_to=today + timedelta(days=DAYS_AHEAD))
     by_date = {}
     for hw in homeworks:
-        iso = hw.date.isoformat()
-        by_date.setdefault(iso, []).append(
-            {
-                "subject": hw.subject.name if hw.subject else "",
-                "description": strip_html(hw.description),
-                "done": bool(hw.done),
-            }
-        )
+        try:
+            subject = get_val(hw, "subject", None)
+            iso = hw.date.isoformat()
+            by_date.setdefault(iso, []).append(
+                {
+                    "subject": get_val(subject, "name", "") if subject else "",
+                    "description": strip_html(get_val(hw, "description", "")),
+                    "done": bool(get_val(hw, "done", False)),
+                }
+            )
+        except Exception as e:
+            print(f"[devoirs] devoir ignoré (erreur : {e})", file=sys.stderr)
     for items in by_date.values():
         items.sort(key=lambda i: i["subject"])
     path = write_json(f"devoirs-{key}.json", {"updatedAt": today.isoformat(), "byDate": by_date})
@@ -97,20 +113,25 @@ def fetch_evaluations(client, key):
 
     by_date = {}
     for lesson in lessons:
-        is_exam = bool(getattr(lesson, "exam", False) or getattr(lesson, "test", False))
-        if not is_exam:
-            continue
-        d = getattr(lesson, "start", None)
-        if d is None:
-            continue
-        iso = d.date().isoformat()
-        by_date.setdefault(iso, []).append(
-            {
-                "subject": lesson.subject.name if getattr(lesson, "subject", None) else "",
-                "start": d.strftime("%H:%M"),
-                "end": lesson.end.strftime("%H:%M") if getattr(lesson, "end", None) else "",
-            }
-        )
+        try:
+            is_exam = bool(get_val(lesson, "exam", False) or get_val(lesson, "test", False))
+            if not is_exam:
+                continue
+            d = get_val(lesson, "start", None)
+            if d is None:
+                continue
+            subject = get_val(lesson, "subject", None)
+            end = get_val(lesson, "end", None)
+            iso = d.date().isoformat()
+            by_date.setdefault(iso, []).append(
+                {
+                    "subject": get_val(subject, "name", "") if subject else "",
+                    "start": d.strftime("%H:%M"),
+                    "end": end.strftime("%H:%M") if end else "",
+                }
+            )
+        except Exception as e:
+            print(f"[évaluations] cours ignoré (erreur : {e})", file=sys.stderr)
     for items in by_date.values():
         items.sort(key=lambda i: i["start"])
     path = write_json(f"evaluations-{key}.json", {"updatedAt": today.isoformat(), "byDate": by_date})
@@ -137,19 +158,23 @@ def fetch_moyennes(client, key):
 
     subjects = []
     for avg in averages:
-        student = to_float(getattr(avg, "student", None))
-        if student is None:
-            continue
-        subjects.append(
-            {
-                "subject": avg.subject.name if getattr(avg, "subject", None) else "",
-                "student": student,
-                "classAverage": to_float(getattr(avg, "class_average", None)),
-                "outOf": to_float(getattr(avg, "out_of", None)) or 20,
-            }
-        )
+        try:
+            student = to_float(get_val(avg, "student", None))
+            if student is None:
+                continue
+            subject = get_val(avg, "subject", None)
+            subjects.append(
+                {
+                    "subject": get_val(subject, "name", "") if subject else "",
+                    "student": student,
+                    "classAverage": to_float(get_val(avg, "class_average", None)),
+                    "outOf": to_float(get_val(avg, "out_of", None)) or 20,
+                }
+            )
+        except Exception as e:
+            print(f"[moyennes] matière ignorée (erreur : {e})", file=sys.stderr)
 
-    overall = to_float(getattr(period, "overall_average", None))
+    overall = to_float(get_val(period, "overall_average", None))
     if overall is None and subjects:
         # Repli : moyenne simple des moyennes par matière (les coefficients
         # officiels du bac ne sont pas ré-appliqués ici, on fait confiance aux
@@ -159,7 +184,7 @@ def fetch_moyennes(client, key):
 
     path = write_json(
         f"moyennes-{key}.json",
-        {"updatedAt": date.today().isoformat(), "periodName": getattr(period, "name", ""), "overall": overall, "subjects": subjects},
+        {"updatedAt": date.today().isoformat(), "periodName": get_val(period, "name", ""), "overall": overall, "subjects": subjects},
     )
     print(f"Écrit {path} : moyenne générale {overall}, {len(subjects)} matière(s)")
 
@@ -175,18 +200,22 @@ def fetch_notifications(client):
 
     items = []
     for info in infos:
-        created = getattr(info, "start_date", None) or getattr(info, "creation_date", None)
-        raw_id = getattr(info, "id", None)
-        stable_id = str(raw_id) if raw_id is not None else str(hash((info.title, str(created))))
-        items.append(
-            {
-                "id": stable_id,
-                "title": getattr(info, "title", "") or "",
-                "content": strip_html(getattr(info, "content", "")),
-                "author": getattr(info, "author", "") or "",
-                "date": created.isoformat() if created else None,
-            }
-        )
+        try:
+            created = get_val(info, "start_date", None) or get_val(info, "creation_date", None)
+            title = get_val(info, "title", "") or ""
+            raw_id = get_val(info, "id", None)
+            stable_id = str(raw_id) if raw_id is not None else str(hash((title, str(created))))
+            items.append(
+                {
+                    "id": stable_id,
+                    "title": title,
+                    "content": strip_html(get_val(info, "content", "")),
+                    "author": get_val(info, "author", "") or "",
+                    "date": created.isoformat() if hasattr(created, "isoformat") else (str(created) if created else None),
+                }
+            )
+        except Exception as e:
+            print(f"[notifications] une information a été ignorée (erreur : {e})", file=sys.stderr)
     items.sort(key=lambda i: i["date"] or "", reverse=True)
     path = write_json("notifications.json", {"updatedAt": date.today().isoformat(), "items": items})
     print(f"Écrit {path} : {len(items)} notification(s)")
@@ -202,8 +231,15 @@ def main():
         print("Échec de connexion à Pronote (identifiants invalides ?)", file=sys.stderr)
         sys.exit(1)
 
+    # Chaque section est isolée : une erreur inattendue dans l'une (ex. une
+    # nouvelle version de pronotepy qui change un nom de champ) n'empêche pas
+    # les autres d'être écrites.
+
     # Les notifications sont au niveau du compte parent, pas par enfant.
-    fetch_notifications(client)
+    try:
+        fetch_notifications(client)
+    except Exception as e:
+        print(f"[notifications] section entière ignorée (erreur : {e})", file=sys.stderr)
 
     found = set()
     for child in client.children:
@@ -212,9 +248,11 @@ def main():
             print(f"Enfant non reconnu, ignoré : {child.name!r}", file=sys.stderr)
             continue
         client.set_child(child)
-        fetch_devoirs(client, key)
-        fetch_evaluations(client, key)
-        fetch_moyennes(client, key)
+        for fn, label in ((fetch_devoirs, "devoirs"), (fetch_evaluations, "évaluations"), (fetch_moyennes, "moyennes")):
+            try:
+                fn(client, key)
+            except Exception as e:
+                print(f"[{label}] section ignorée pour {key} (erreur : {e})", file=sys.stderr)
         found.add(key)
 
     missing = {"soren", "loise"} - found
