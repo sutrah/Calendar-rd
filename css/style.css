@@ -618,3 +618,37 @@ footer.app-footer {
   color: var(--warning-text);
   background: var(--warning-bg);
 }
+
+.ios-install-banner {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + var(--safe-bottom));
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--text);
+  color: var(--bg);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.ios-install-banner strong {
+  color: var(--accent);
+}
+
+.ios-install-close {
+  flex: 0 0 auto;
+  border: none;
+  background: rgba(128, 128, 128, 0.25);
+  color: inherit;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 13px;
+}

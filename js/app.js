@@ -392,10 +392,40 @@ document.getElementById('tabs').addEventListener('click', (e) => {
   render();
 });
 
+/* --- iOS n'a pas de invite d'installation automatique : on affiche une bannière --- */
+
+function isIos() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function initIosInstallBanner() {
+  if (!isIos() || isStandalone()) return;
+  if (localStorage.getItem('ios_install_banner_dismissed') === '1') return;
+
+  const banner = document.createElement('div');
+  banner.className = 'ios-install-banner';
+  banner.innerHTML = `
+    <span>📲 Ajoutez ce site à l'écran d'accueil : appuyez sur <strong>Partager</strong> ⬆️ puis « Sur l'écran d'accueil ».</span>
+    <button class="ios-install-close" aria-label="Fermer">✕</button>
+  `;
+  document.body.appendChild(banner);
+  banner.querySelector('.ios-install-close').addEventListener('click', () => {
+    banner.remove();
+    try {
+      localStorage.setItem('ios_install_banner_dismissed', '1');
+    } catch (e) { /* stockage indisponible : tant pis */ }
+  });
+}
+
 (async function init() {
   state.selectedDate = initialSelectedDate();
   await loadData();
   render();
   initPush();
+  initIosInstallBanner();
   setInterval(render, 60000); // garde le repère "Maintenant" à jour
 })();
