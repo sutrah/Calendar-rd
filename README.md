@@ -85,17 +85,27 @@ Configuration (à faire une seule fois) :
 ⚠️ Sur iPhone/iPad, Safari exige que le site soit ajouté à l'écran d'accueil (voir
 « Mise en ligne » ci-dessus) avant que les notifications fonctionnent (iOS 16.4+).
 
-## Devoirs Pronote (automatique)
+## Données Pronote (automatique)
 
 Une GitHub Action tourne chaque matin (5h UTC), se connecte à Pronote avec votre compte
-parent, récupère les devoirs de Sören et Loïse pour les jours à venir, et les dépose
-directement en FTP dans `data/devoirs-soren.json` et `data/devoirs-loise.json`. Sur le
-site, ils apparaissent automatiquement sous le planning du jour (**vue Jour uniquement**,
-pas la vue Semaine), pour le jour suivant celui affiché.
+parent, et dépose directement en FTP dans `data/` :
 
-Chaque devoir a une case à cocher pour le marquer fait (avec un petit effet visuel). Cet
-état coché est stocké **localement dans le navigateur** (localStorage) : il n'est donc pas
-partagé entre les appareils de la famille, chacun garde sa propre coche sur son téléphone.
+- **Devoirs** (`devoirs-soren.json` / `devoirs-loise.json`) : affichés sous le planning du
+  jour (**vue Jour uniquement**, pas la vue Semaine), pour le jour suivant celui affiché.
+  Chaque devoir a une case à cocher pour le marquer fait (avec un petit effet visuel).
+  Cet état coché est stocké **localement dans le navigateur** (localStorage) : il n'est
+  donc pas partagé entre les appareils de la famille, chacun garde sa propre coche.
+- **Évaluations** (`evaluations-soren.json` / `evaluations-loise.json`) : les créneaux
+  marqués comme contrôle/évaluation dans Pronote apparaissent en **orange** dans le
+  planning (case du cours + lettre du jour dans le sélecteur de jours / vue Semaine).
+- **Moyennes** (`moyennes-soren.json` / `moyennes-loise.json`) : moyenne générale (donut)
+  et moyenne par matière, affichées sous les devoirs. Les coefficients utilisés sont ceux
+  déjà configurés dans Pronote par l'établissement (qui reflètent normalement les
+  coefficients du bac pour Loïse) — le site ne recalcule rien lui-même.
+- **Notifications** (`notifications.json`) : les informations/actualités du compte parent
+  (sécurité, communications, documents à fournir...) apparaissent dans un onglet dédié
+  **Notifications**, avec un badge numérique tant qu'elles n'ont pas été consultées (marqué
+  « vu » localement sur l'appareil, dès l'ouverture de l'onglet).
 
 Secrets GitHub nécessaires (Settings → Secrets and variables → Actions), déjà créés :
 `PRONOTE_URL`, `PRONOTE_USERNAME`, `PRONOTE_PASSWORD` (votre compte **parent** Pronote,
@@ -141,8 +151,10 @@ js/push.js             Notifications OneSignal
 data/soren.json        Emploi du temps de Sören
 data/loise.json        Emploi du temps de Loïse
 data/family.json       Événements famille
-data/devoirs-soren.json  Devoirs de Sören (généré par la GitHub Action, pas à éditer)
-data/devoirs-loise.json  Devoirs de Loïse (généré par la GitHub Action, pas à éditer)
+data/devoirs-*.json       Devoirs par enfant (généré par la GitHub Action, pas à éditer)
+data/evaluations-*.json  Évaluations à venir par enfant (généré par la GitHub Action)
+data/moyennes-*.json     Moyennes par enfant (généré par la GitHub Action)
+data/notifications.json  Notifications du compte parent (généré par la GitHub Action)
 manifest.json           Pour l'ajout à l'écran d'accueil
 OneSignalSDKWorker.js    Requis par OneSignal
 icons/                   Icônes de l'application

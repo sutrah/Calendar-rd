@@ -652,3 +652,180 @@ footer.app-footer {
   cursor: pointer;
   font-size: 13px;
 }
+
+/* Onglet Notifications */
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+
+.tab-badge[hidden] {
+  display: none;
+}
+
+nav.tabs button.active .tab-badge {
+  background: #fff;
+  color: #ef4444;
+}
+
+.notif-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.notif-card.unseen {
+  border-color: var(--accent);
+}
+
+.notif-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: capitalize;
+  margin-bottom: 4px;
+}
+
+.notif-new-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+.notif-title {
+  font-weight: 700;
+  font-size: 14.5px;
+  margin: 0 0 4px 0;
+}
+
+.notif-content {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin: 0 0 4px 0;
+  white-space: pre-wrap;
+}
+
+.notif-author {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  font-style: italic;
+}
+
+/* Évaluations : mise en évidence orange */
+.slot-card.eval {
+  box-shadow: 0 0 0 2px #ea580c;
+  background: rgba(234, 88, 12, 0.07);
+}
+
+.eval-badge {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #ea580c;
+  color: #fff;
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.day-chip.has-eval .dow {
+  color: #ea580c;
+  font-weight: 800;
+}
+
+.day-chip.selected.has-eval .dow {
+  color: #fed7aa;
+}
+
+.week-day-header.has-eval {
+  color: #ea580c;
+}
+
+/* Moyennes */
+.donut-wrap {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin: 8px auto 16px;
+}
+
+.donut {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.donut-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 10;
+}
+
+.donut-fg {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.6s ease;
+}
+
+.donut-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.donut-label span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+.moyenne-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--card-color, var(--accent));
+  border-radius: var(--radius);
+  padding: 10px 14px;
+}
+
+.moyenne-subject {
+  font-weight: 700;
+  font-size: 14px;
+  margin: 0 0 2px 0;
+}
+
+.moyenne-values {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.moyenne-class {
+  color: var(--text-muted);
+}

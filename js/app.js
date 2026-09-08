@@ -18,14 +18,31 @@ async function fetchJsonSafe(url) {
 }
 
 async function loadData() {
-  const [soren, loise, famille, devoirsSoren, devoirsLoise] = await Promise.all([
+  const [
+    soren, loise, famille,
+    devoirsSoren, devoirsLoise,
+    evaluationsSoren, evaluationsLoise,
+    moyennesSoren, moyennesLoise,
+    notifications,
+  ] = await Promise.all([
     fetch('data/soren.json').then((r) => r.json()),
     fetch('data/loise.json').then((r) => r.json()),
     fetch('data/family.json').then((r) => r.json()),
     fetchJsonSafe('data/devoirs-soren.json'),
     fetchJsonSafe('data/devoirs-loise.json'),
+    fetchJsonSafe('data/evaluations-soren.json'),
+    fetchJsonSafe('data/evaluations-loise.json'),
+    fetchJsonSafe('data/moyennes-soren.json'),
+    fetchJsonSafe('data/moyennes-loise.json'),
+    fetchJsonSafe('data/notifications.json'),
   ]);
-  state.data = { soren, loise, famille, devoirsSoren, devoirsLoise };
+  state.data = {
+    soren, loise, famille,
+    devoirsSoren, devoirsLoise,
+    evaluationsSoren, evaluationsLoise,
+    moyennesSoren, moyennesLoise,
+    notifications,
+  };
 }
 
 function initialSelectedDate() {
@@ -68,7 +85,7 @@ function renderTabs() {
   });
 }
 
-function renderDaySelector(monday, numDays) {
+function renderDaySelector(monday, numDays, childKey) {
   const wrap = document.createElement('div');
   wrap.className = 'day-selector';
   for (let i = 0; i < numDays; i++) {
@@ -77,7 +94,8 @@ function renderDaySelector(monday, numDays) {
     const chip = document.createElement('div');
     const isToday = iso === toISO(startOfDay(new Date()));
     const isSelected = iso === toISO(state.selectedDate);
-    chip.className = 'day-chip' + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
+    const hasEval = dateHasEval(childKey, iso);
+    chip.className = 'day-chip' + (isToday ? ' today' : '') + (isSelected ? ' selected' : '') + (hasEval ? ' has-eval' : '');
     chip.innerHTML = `<span class="dow">${DOW_SHORT[d.getDay()]}</span><span class="num">${d.getDate()}</span>`;
     chip.addEventListener('click', () => {
       state.selectedDate = d;
@@ -132,6 +150,24 @@ function renderWeekNav(monday, showParityBadge) {
   return wrap;
 }
 
+/* --- Évaluations (mise en évidence orange) --- */
+
+function evaluationsByDate(childKey) {
+  const data = childKey === 'soren' ? state.data.evaluationsSoren : state.data.evaluationsLoise;
+  return (data && data.byDate) || {};
+}
+
+function dateHasEval(childKey, iso) {
+  const evals = evaluationsByDate(childKey)[iso];
+  return !!(evals && evals.length);
+}
+
+function isEvalSlot(childKey, iso, slot) {
+  const evals = evaluationsByDate(childKey)[iso];
+  if (!evals) return false;
+  return evals.some((e) => e.subject === slot.subject && e.start === slot.start);
+}
+
 /** Le créneau est-il en train de se dérouler maintenant (pour le jour affiché) ? */
 function isSlotNow(slot, date) {
   const now = new Date();
@@ -142,32 +178,33 @@ function isSlotNow(slot, date) {
   return nowMin >= sh * 60 + sm && nowMin < eh * 60 + em;
 }
 
-function slotCard(slot, date) {
+function slotCard(slot, date, isEval) {
   const card = document.createElement('div');
   const isNow = isSlotNow(slot, date);
-  card.className = 'slot-card' + (slot.added ? ' added' : '') + (isNow ? ' now' : '');
+  card.className = 'slot-card' + (slot.added ? ' added' : '') + (isNow ? ' now' : '') + (isEval ? ' eval' : '');
   card.style.setProperty('--card-color', colorForSubject(slot.subject));
   const meta = [slot.teacher, slot.room].filter(Boolean).join(' · ');
   card.innerHTML = `
     <div class="slot-time">${slot.start}<br>${slot.end}</div>
     <div class="slot-info">
-      <p class="slot-subject">${slot.subject}${slot.group ? `<span class="slot-group">${slot.group}</span>` : ''}${isNow ? `<span class="now-badge">Maintenant</span>` : ''}</p>
+      <p class="slot-subject">${slot.subject}${slot.group ? `<span class="slot-group">${slot.group}</span>` : ''}${isNow ? `<span class="now-badge">Maintenant</span>` : ''}${isEval ? `<span class="eval-badge">Éval</span>` : ''}</p>
       ${meta ? `<p class="slot-meta">${meta}</p>` : ''}
     </div>
   `;
   return card;
 }
 
-function renderWeekView(main, child, monday, numDays) {
+function renderWeekView(main, child, monday, numDays, childKey) {
   for (let i = 0; i < numDays; i++) {
     const d = addDays(monday, i);
     const iso = toISO(d);
     const isToday = iso === toISO(startOfDay(new Date()));
+    const hasEval = dateHasEval(childKey, iso);
 
     const dayWrap = document.createElement('div');
     dayWrap.className = 'week-day';
     const header = document.createElement('div');
-    header.className = 'week-day-header' + (isToday ? ' today' : '');
+    header.className = 'week-day-header' + (isToday ? ' today' : '') + (hasEval ? ' has-eval' : '');
     header.innerHTML = `<span>${formatLongDate(d)}</span>${isToday ? '<span class="today-badge">Aujourd’hui</span>' : ''}`;
     dayWrap.appendChild(header);
 
@@ -188,7 +225,7 @@ function renderWeekView(main, child, monday, numDays) {
       } else {
         const list = document.createElement('div');
         list.className = 'agenda-list compact';
-        slots.forEach((s) => list.appendChild(slotCard(s, d)));
+        slots.forEach((s) => list.appendChild(slotCard(s, d, isEvalSlot(childKey, iso, s))));
         dayWrap.appendChild(list);
       }
     }
@@ -197,6 +234,7 @@ function renderWeekView(main, child, monday, numDays) {
 }
 
 function renderChildTab(main, child) {
+  const childKey = child === state.data.soren ? 'soren' : 'loise';
   const monday = getMonday(state.selectedDate);
   const numDays = getChildDays(child).length;
   const hasWeekAlternation = (child.slots || []).some((s) => s.week);
@@ -212,11 +250,11 @@ function renderChildTab(main, child) {
   }
 
   if (state.view === 'semaine') {
-    renderWeekView(main, child, monday, numDays);
+    renderWeekView(main, child, monday, numDays, childKey);
     return;
   }
 
-  main.appendChild(renderDaySelector(monday, numDays));
+  main.appendChild(renderDaySelector(monday, numDays, childKey));
 
   const iso = toISO(state.selectedDate);
   const ferie = ferieDuJour(iso);
@@ -244,14 +282,16 @@ function renderChildTab(main, child) {
       empty.textContent = vacance ? '' : 'Pas de cours prévu ce jour.';
       if (!vacance) list.appendChild(empty);
     } else {
-      slots.forEach((s) => list.appendChild(slotCard(s, state.selectedDate)));
+      slots.forEach((s) => list.appendChild(slotCard(s, state.selectedDate, isEvalSlot(childKey, iso, s))));
     }
     main.appendChild(list);
   }
 
-  const childKey = child === state.data.soren ? 'soren' : 'loise';
   const devoirsData = childKey === 'soren' ? state.data.devoirsSoren : state.data.devoirsLoise;
   renderDevoirsSection(main, childKey, devoirsData, state.selectedDate);
+
+  const moyennesData = childKey === 'soren' ? state.data.moyennesSoren : state.data.moyennesLoise;
+  renderMoyennesSection(main, moyennesData);
 }
 
 /* --- Devoirs : coché "fait" persisté localement (par appareil) --- */
@@ -345,6 +385,107 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+/* --- Moyennes (moyenne générale + par matière, calculées par Pronote) --- */
+
+function renderMoyennesSection(main, moyennesData) {
+  if (!moyennesData || moyennesData.overall == null) return;
+
+  const title = document.createElement('div');
+  title.className = 'section-title';
+  title.textContent = `📊 Moyennes${moyennesData.periodName ? ' — ' + moyennesData.periodName : ''}`;
+  main.appendChild(title);
+
+  const outOf = 20;
+  const pct = Math.max(0, Math.min(1, moyennesData.overall / outOf));
+  const r = 42;
+  const c = 2 * Math.PI * r;
+
+  const donutWrap = document.createElement('div');
+  donutWrap.className = 'donut-wrap';
+  donutWrap.innerHTML = `
+    <svg viewBox="0 0 100 100" class="donut">
+      <circle cx="50" cy="50" r="${r}" class="donut-bg" />
+      <circle cx="50" cy="50" r="${r}" class="donut-fg" stroke-dasharray="${(pct * c).toFixed(1)} ${c.toFixed(1)}" />
+    </svg>
+    <div class="donut-label">${moyennesData.overall.toFixed(1)}<span>/20</span></div>
+  `;
+  main.appendChild(donutWrap);
+
+  if (moyennesData.subjects && moyennesData.subjects.length > 0) {
+    const list = document.createElement('div');
+    list.className = 'agenda-list';
+    moyennesData.subjects.forEach((s) => {
+      const card = document.createElement('div');
+      card.className = 'moyenne-card';
+      card.style.setProperty('--card-color', colorForSubject(s.subject));
+      card.innerHTML = `
+        <p class="moyenne-subject">${escapeHtml(s.subject)}</p>
+        <p class="moyenne-values">${s.student.toFixed(1)}/${s.outOf}${s.classAverage != null ? ` <span class="moyenne-class">· classe ${s.classAverage.toFixed(1)}</span>` : ''}</p>
+      `;
+      list.appendChild(card);
+    });
+    main.appendChild(list);
+  }
+}
+
+/* --- Notifications Pronote (compte parent) --- */
+
+function getSeenNotifIds() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem('notifications_seen')) || []);
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function markNotificationsSeen(ids) {
+  try {
+    localStorage.setItem('notifications_seen', JSON.stringify(ids));
+  } catch (e) { /* stockage indisponible : tant pis */ }
+}
+
+function unseenNotifCount() {
+  const items = (state.data.notifications && state.data.notifications.items) || [];
+  const seen = getSeenNotifIds();
+  return items.filter((i) => !seen.has(i.id)).length;
+}
+
+function updateNotifBadge() {
+  const badge = document.getElementById('notifBadge');
+  if (!badge) return;
+  const count = unseenNotifCount();
+  badge.textContent = count > 9 ? '9+' : String(count);
+  badge.hidden = count === 0;
+}
+
+function renderNotificationsTab(main) {
+  const items = (state.data.notifications && state.data.notifications.items) || [];
+  const seen = getSeenNotifIds();
+
+  if (items.length === 0) {
+    main.innerHTML = '<div class="empty-state">Aucune notification pour le moment.</div>';
+  } else {
+    const list = document.createElement('div');
+    list.className = 'agenda-list';
+    items.forEach((n) => {
+      const card = document.createElement('div');
+      card.className = 'notif-card' + (seen.has(n.id) ? '' : ' unseen');
+      const d = n.date ? new Date(n.date) : null;
+      card.innerHTML = `
+        <div class="notif-date">${d ? formatLongDate(d) : ''}${!seen.has(n.id) ? '<span class="notif-new-dot"></span>' : ''}</div>
+        <p class="notif-title">${escapeHtml(n.title)}</p>
+        ${n.content ? `<p class="notif-content">${escapeHtml(n.content).replace(/\n/g, '<br>')}</p>` : ''}
+        ${n.author ? `<p class="notif-author">${escapeHtml(n.author)}</p>` : ''}
+      `;
+      list.appendChild(card);
+    });
+    main.appendChild(list);
+  }
+
+  // La visite de l'onglet marque tout comme vu ; le badge se met à jour au rendu suivant.
+  markNotificationsSeen(items.map((i) => i.id));
+}
+
 function renderFamilleTab(main) {
   const upcoming = prochainesEcheances(new Date(), 150);
   main.innerHTML += '<div class="section-title">Jours fériés & vacances (Zone B)</div>';
@@ -380,8 +521,10 @@ function render() {
   const main = document.getElementById('main');
   main.innerHTML = '';
   renderTabs();
+  updateNotifBadge();
   if (state.tab === 'soren') renderChildTab(main, state.data.soren);
   else if (state.tab === 'loise') renderChildTab(main, state.data.loise);
+  else if (state.tab === 'notifications') renderNotificationsTab(main);
   else renderFamilleTab(main);
 }
 
