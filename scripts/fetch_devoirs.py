@@ -18,16 +18,19 @@ son propre try/except : si l'API pronotepy diffère légèrement d'une version �
 l'autre pour l'une d'elles, les autres sections continuent d'être écrites
 plutôt que de faire échouer tout le script.
 
-Le menu de cantine est un cas particulier : l'établissement le publie comme
-pièce jointe PDF (une image scannée, sans texte sélectionnable) sur une
-information "Menu du self du ... au ...", commune aux deux enfants. Le PDF
-est donc envoyé à l'API Claude (secret ANTHROPIC_API_KEY) pour être lu et
-structuré en JSON, comme le ferait un humain. Si ce secret n'est pas défini,
-cette section est simplement ignorée (le reste du script fonctionne
-normalement).
+Le menu de cantine est un cas particulier, non lié à Pronote : l'établissement
+le publie en PDF (une image scannée, sans texte sélectionnable) sur la page
+d'accueil Pronote, un widget que la bibliothèque pronotepy ne permet pas de
+récupérer automatiquement. La famille dépose donc elle-même chaque PDF sur
+le FTP (dossier FTP_MENUS_DIR) ; ce script les lit et les envoie à l'API
+Claude (secret ANTHROPIC_API_KEY) pour en extraire le contenu structuré. Si
+le secret n'est pas défini ou le dossier est vide, cette section est
+simplement ignorée (le reste du script fonctionne normalement).
 """
 
 import base64
+import ftplib
+import io
 import json
 import os
 import re
@@ -268,16 +271,23 @@ def fetch_notifications(login_fn):
     print(f"Écrit {path} : {len(items)} notification(s)")
 
 
-# --- Menu de cantine (PDF joint à une information Pronote, lu par l'API Claude) --
+# --- Menu de cantine (PDF déposé manuellement sur le FTP, lu par l'API Claude) --
 #
-# L'établissement ne publie pas le menu via le module "Menus" natif de
-# Pronote (client.menus() renvoie 0 jour) ni comme pièce jointe de cours :
-# il l'envoie comme information/actualité "Menu du self du ... au ..."
-# (visible dans Communication > Agenda côté Pronote), avec un PDF scanné
-# (sans texte, donc illisible par extraction classique) en pièce jointe,
-# commune aux deux enfants. On repère ces informations parmi celles déjà
-# listées par information_and_surveys(), on télécharge leur PDF, et on
-# l'envoie à l'API Claude pour en extraire le contenu structuré.
+# Le menu n'est récupérable de façon fiable ni via le module "Menus" natif
+# de Pronote (client.menus() renvoie 0 jour, l'établissement ne l'utilise
+# pas), ni via le "Cahier de texte" (pas une pièce jointe de cours), ni via
+# les informations/actualités (information_and_surveys() ne les liste pas
+# non plus) : le PDF scanné (sans texte, illisible par extraction classique)
+# vient de la page d'accueil Pronote ("Agenda"), qui agrège des widgets non
+# exposés par la bibliothèque pronotepy.
+#
+# La famille dépose donc elle-même chaque nouveau PDF de menu dans un
+# dossier FTP dédié (FTP_MENUS_DIR) quand l'établissement le publie ; cette
+# section liste ce dossier, télécharge chaque PDF et l'envoie à l'API
+# Claude pour en extraire le contenu structuré.
+
+FTP_HOST = "ftp.cluster026.hosting.ovh.net"
+FTP_MENUS_DIR = "/games/cal/menus-pdf"
 
 MENU_JSON_SCHEMA = {
     "type": "object",
@@ -344,40 +354,37 @@ def parse_menu_pdf(pdf_bytes, filename):
     return json.loads(text)
 
 
-def fetch_menu(login_fn):
-    """login_fn : fonction sans argument qui renvoie une connexion Pronote
-    fraîche (ex. la fonction login() elle-même) — même schéma que
-    fetch_notifications, pour la même raison (une session par pièce
-    jointe téléchargée)."""
-    try:
-        infos = login_fn().information_and_surveys()
-    except Exception as e:
-        print(f"[menu] impossible de récupérer les informations : {e}", file=sys.stderr)
+def fetch_menu():
+    username = os.environ.get("FTP_USERNAME")
+    password = os.environ.get("FTP_PASSWORD")
+    if not username or not password:
+        print("[menu] FTP_USERNAME/FTP_PASSWORD absents : section ignorée", file=sys.stderr)
         return
 
-    menu_infos = [i for i in infos if "menu" in (get_val(i, "title", "") or "").lower()]
-    if not menu_infos:
-        print("[menu] aucune information contenant 'menu' dans le titre", file=sys.stderr)
+    try:
+        ftp = ftplib.FTP(FTP_HOST, username, password, timeout=30)
+        try:
+            ftp.cwd(FTP_MENUS_DIR)
+        except ftplib.error_perm:
+            # Dossier pas encore créé : on le crée pour la prochaine fois.
+            ftp.mkd(FTP_MENUS_DIR)
+            ftp.cwd(FTP_MENUS_DIR)
+        names = [n for n in ftp.nlst() if n.lower().endswith(".pdf")]
+    except Exception as e:
+        print(f"[menu] impossible de lister {FTP_MENUS_DIR} sur le FTP (erreur : {e})", file=sys.stderr)
+        return
+
+    if not names:
+        print(f"[menu] aucun PDF dans {FTP_MENUS_DIR}", file=sys.stderr)
+        ftp.quit()
         return
 
     by_date = {}
-    for info in menu_infos:
-        title = get_val(info, "title", "") or ""
-        raw_id = get_val(info, "id", None)
+    for name in names:
         try:
-            fresh_infos = login_fn().information_and_surveys()
-            fresh_info = next((i for i in fresh_infos if get_val(i, "id", None) == raw_id), None)
-            if fresh_info is None:
-                continue
-            attachments = get_val(fresh_info, "attachments", []) or []
-            pdf = next((a for a in attachments if (get_val(a, "name", "") or "").lower().endswith(".pdf")), None)
-            if pdf is None:
-                print(f"[menu] '{title}' n'a pas de pièce jointe PDF", file=sys.stderr)
-                continue
-            pdf_bytes = get_val(pdf, "data", None)
-            if not pdf_bytes:
-                continue
-            parsed = parse_menu_pdf(pdf_bytes, get_val(pdf, "name", title))
+            buf = io.BytesIO()
+            ftp.retrbinary(f"RETR {name}", buf.write)
+            parsed = parse_menu_pdf(buf.getvalue(), name)
             if not parsed:
                 continue
             for day in parsed.get("days", []):
@@ -391,10 +398,11 @@ def fetch_menu(login_fn):
                     "desserts": day.get("desserts", []),
                 }
         except Exception as e:
-            print(f"[menu] '{title}' ignoré (erreur : {e})", file=sys.stderr)
+            print(f"[menu] '{name}' ignoré (erreur : {e})", file=sys.stderr)
 
+    ftp.quit()
     path = write_json("menu.json", {"updatedAt": date.today().isoformat(), "byDate": by_date})
-    print(f"Écrit {path} : menu pour {len(by_date)} jour(s)")
+    print(f"Écrit {path} : menu pour {len(by_date)} jour(s), source={len(names)} PDF(s)")
 
 
 def login():
@@ -439,7 +447,7 @@ def main():
         print(f"[notifications] section entière ignorée (erreur : {e})", file=sys.stderr)
 
     try:
-        fetch_menu(login)
+        fetch_menu()
     except Exception as e:
         print(f"[menu] section entière ignorée (erreur : {e})", file=sys.stderr)
 

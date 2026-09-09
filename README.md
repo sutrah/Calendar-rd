@@ -112,23 +112,18 @@ parent, et dépose directement en FTP dans `data/` :
   **Notifications**, avec un badge numérique tant qu'elles n'ont pas été consultées (marqué
   « vu » localement sur l'appareil, dès l'ouverture de l'onglet).
 - **Menu de la cantine** (`menu.json`, commun aux deux enfants) : votre établissement
-  publie le menu comme pièce jointe **PDF scannée** (sans texte sélectionnable) sur une
-  information « Menu du self du ... au ... » plutôt que via le module Menus natif de
-  Pronote. Le site repère ces informations, télécharge le PDF et l'envoie à l'**API
-  Claude** pour en extraire le contenu structuré. Affiché entre les devoirs et les
-  moyennes, en vue **Jour** uniquement, pour le jour actuellement affiché.
+  publie le menu comme PDF scanné (sans texte sélectionnable) sur un widget de la page
+  d'accueil Pronote que la bibliothèque `pronotepy` ne permet pas de récupérer
+  automatiquement (ni le module Menus natif, ni le cahier de texte, ni les
+  informations/actualités ne l'exposent). **Ce n'est donc pas automatique** : voir
+  « Mettre à jour le menu de la cantine » ci-dessous.
 
 Secrets GitHub nécessaires (Settings → Secrets and variables → Actions), déjà créés :
 `PRONOTE_URL`, `PRONOTE_USERNAME`, `PRONOTE_PASSWORD` (votre compte **parent** Pronote,
 qui voit les deux enfants), `FTP_USERNAME`, `FTP_PASSWORD`. L'hôte FTP et le dossier
 distant (`/games/cal/data/`) sont écrits en clair dans
-`.github/workflows/devoirs.yml`.
-
-Un secret supplémentaire est nécessaire pour le menu de la cantine :
-`ANTHROPIC_API_KEY` — une clé API Claude, à créer sur https://console.anthropic.com puis à
-ajouter dans les secrets GitHub du dépôt (Settings → Secrets and variables → Actions → New
-repository secret). Sans ce secret, la section « Menu de la cantine » est simplement
-ignorée (aucune erreur bloquante pour le reste du site).
+`.github/workflows/devoirs.yml`. Le menu de la cantine demande un secret supplémentaire,
+voir « Mettre à jour le menu de la cantine » ci-dessous.
 
 Points importants :
 - Cette intégration utilise **pronotepy**, une bibliothèque non-officielle (Pronote n'a
@@ -143,6 +138,34 @@ Points importants :
   section « Devoirs » n'apparaît simplement pas — ça ne bloque rien d'autre sur le site.
 - Les enfants sont reconnus par leur prénom (« Sören »/« Loïse », sans tenir compte des
   accents) dans les noms Pronote de vos enfants rattachés au compte parent.
+
+## Mettre à jour le menu de la cantine
+
+Le menu n'est pas récupérable automatiquement depuis Pronote (voir ci-dessus) : c'est
+vous qui déposez le PDF quand l'établissement le publie (environ une fois par semaine),
+via **le même logiciel FTP que celui utilisé pour la mise en ligne initiale du site**
+(mêmes identifiants FTP) :
+
+1. Téléchargez le PDF du menu depuis Pronote (bouton de téléchargement sur la pièce
+   jointe, comme habituellement).
+2. Connectez-vous en FTP à `ftp.cluster026.hosting.ovh.net`.
+3. Déposez le fichier dans le dossier `/games/cal/menus-pdf/` (créé automatiquement au
+   premier essai s'il n'existe pas encore).
+4. Le lendemain matin (ou en lançant manuellement l'Action « Devoirs Pronote » depuis
+   l'onglet **Actions** du dépôt GitHub → bouton « Run workflow »), le site lit tous les
+   PDF présents dans ce dossier, les envoie à l'API Claude pour en extraire le contenu, et
+   met à jour `data/menu.json`.
+
+Vous pouvez déposer plusieurs PDF à la fois (par exemple plusieurs semaines d'avance) —
+ils sont tous relus à chaque exécution de l'Action, donc pensez à supprimer de temps en
+temps les PDF de semaines déjà passées pour éviter de payer inutilement leur relecture
+par l'API Claude chaque jour (coût minime, mais autant l'éviter).
+
+Secret GitHub nécessaire en plus de ceux ci-dessus : `ANTHROPIC_API_KEY` — une clé API
+Claude, à créer sur https://console.anthropic.com puis à ajouter dans les secrets GitHub
+du dépôt (Settings → Secrets and variables → Actions → New repository secret). Sans ce
+secret ou sans PDF dans le dossier, la section « Menu de la cantine » est simplement
+absente du site (aucune erreur bloquante pour le reste).
 
 ## Jours fériés & vacances scolaires
 
