@@ -426,10 +426,40 @@ def debug_page_accueil(client):
     except Exception as e:
         print(f"[debug PageAccueil] échec de l'appel (erreur : {e})", file=sys.stderr)
         return
-    dump = json.dumps(response, ensure_ascii=False, indent=2)
-    print("[debug PageAccueil] réponse brute (tronquée à 8000 caractères) :", file=sys.stderr)
-    print(dump[:8000], file=sys.stderr)
-    print(f"[debug PageAccueil] longueur totale : {len(dump)} caractères", file=sys.stderr)
+
+    data = response.get("dataSec", {}).get("data", {})
+    print(f"[debug PageAccueil] clés de premier niveau : {sorted(data.keys())}", file=sys.stderr)
+
+    # Recherche ciblée du widget "évaluations" plutôt qu'un dump complet :
+    # on descend récursivement jusqu'à trouver "PHYSIQUE-CHIMIE" (le cours
+    # de l'évaluation connue), puis on affiche le sous-arbre qui la contient
+    # en remontant jusqu'à la clé de premier niveau correspondante.
+    def find_path(obj, target, path=()):
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                if isinstance(v, str) and target in v:
+                    return path + (k,)
+                found = find_path(v, target, path + (k,))
+                if found:
+                    return found
+        elif isinstance(obj, list):
+            for i, v in enumerate(obj):
+                found = find_path(v, target, path + (i,))
+                if found:
+                    return found
+        return None
+
+    path = find_path(data, "PHYSIQUE-CHIMIE")
+    if not path:
+        print("[debug PageAccueil] 'PHYSIQUE-CHIMIE' introuvable dans la réponse", file=sys.stderr)
+        return
+    print(f"[debug PageAccueil] trouvé sous le chemin : {path}", file=sys.stderr)
+
+    # Remonte au premier niveau (data[path[0]]) et affiche ce sous-objet entier.
+    top_key = path[0]
+    sub = json.dumps(data[top_key], ensure_ascii=False, indent=2)
+    print(f"[debug PageAccueil] contenu de data['{top_key}'] (tronqué à 6000 caractères) :", file=sys.stderr)
+    print(sub[:6000], file=sys.stderr)
 
 
 def login():
