@@ -107,39 +107,36 @@ parent, et dépose directement en FTP dans `data/` :
   (sécurité, communications, documents à fournir...) apparaissent dans un onglet dédié
   **Notifications**, avec un badge numérique tant qu'elles n'ont pas été consultées (marqué
   « vu » localement sur l'appareil, dès l'ouverture de l'onglet).
-- **Menu de la cantine** (`menu.json`, commun aux deux enfants) : votre établissement
-  publie le menu comme PDF scanné (sans texte sélectionnable) sur la page d'accueil
-  Pronote. Le site le récupère automatiquement et l'envoie à l'**API Claude** pour en
-  extraire le contenu structuré. Affiché entre les devoirs et les moyennes, en vue
-  **Jour** uniquement, pour le jour actuellement affiché.
-
 Secrets GitHub nécessaires (Settings → Secrets and variables → Actions), déjà créés :
 `PRONOTE_URL`, `PRONOTE_USERNAME`, `PRONOTE_PASSWORD` (votre compte **parent** Pronote,
 qui voit les deux enfants), `FTP_USERNAME`, `FTP_PASSWORD`. L'hôte FTP et le dossier
 distant (`/games/cal/data/`) sont écrits en clair dans `.github/workflows/devoirs.yml`.
 
-Un secret supplémentaire est nécessaire pour le menu de la cantine :
-`ANTHROPIC_API_KEY` — une clé API Claude, à créer sur https://console.anthropic.com (avec
-du crédit disponible dans **Plans & Billing**) puis à ajouter dans les secrets GitHub du
-dépôt (Settings → Secrets and variables → Actions → New repository secret). Sans ce
-secret, la section « Menu de la cantine » est simplement absente du site (aucune erreur
-bloquante pour le reste).
-
 Points importants :
 - Cette intégration utilise **pronotepy**, une bibliothèque non-officielle (Pronote n'a
-  pas d'API publique), complétée par quelques appels bruts à l'API Pronote (fonctions
-  `PageAccueil` et `PageEmploiDuTemps`) pour le menu et les évaluations par compétences,
-  que `pronotepy` n'expose pas nativement. Pronote change parfois son fonctionnement
-  interne, ce qui peut casser la connexion jusqu'à une mise à jour de la bibliothèque ou
-  du script. Si les devoirs ne se mettent plus à jour, allez dans l'onglet **Actions** du
-  dépôt GitHub → « Devoirs Pronote » pour voir l'erreur exacte, ou lancez-la manuellement
-  (bouton « Run workflow »).
+  pas d'API publique), complétée par un appel brut à l'API Pronote (fonction
+  `PageEmploiDuTemps`) pour les évaluations par compétences, que `pronotepy` n'expose pas
+  nativement. Pronote change parfois son fonctionnement interne, ce qui peut casser la
+  connexion jusqu'à une mise à jour de la bibliothèque ou du script. Si les devoirs ne se
+  mettent plus à jour, allez dans l'onglet **Actions** du dépôt GitHub → « Devoirs
+  Pronote » pour voir l'erreur exacte, ou lancez-la manuellement (bouton « Run workflow »).
 - Vos identifiants Pronote ne sont utilisés que côté GitHub Actions (jamais envoyés au
   navigateur) : ils ne sont pas visibles par qui visite le site.
 - Tant que l'Action n'a pas encore tourné une première fois (ou si elle échoue), la
   section « Devoirs » n'apparaît simplement pas — ça ne bloque rien d'autre sur le site.
 - Les enfants sont reconnus par leur prénom (« Sören »/« Loïse », sans tenir compte des
   accents) dans les noms Pronote de vos enfants rattachés au compte parent.
+
+## Menu de la cantine (saisie manuelle)
+
+Contrairement au reste, le menu **n'est pas récupéré automatiquement** : la famille
+préfère transmettre le texte du menu directement (transmis à Claude, qui met à jour
+`data/menu.json` et pousse le changement) plutôt que de dépendre d'une extraction de PDF
+scanné ou d'un abonnement à l'API Claude. Quand l'établissement publie un nouveau menu,
+envoyez-en simplement le texte pour qu'il soit ajouté au site. Affiché entre les devoirs
+et les moyennes, en vue **Jour** uniquement, pour le jour actuellement affiché — les jours
+sans menu détaillé (ex. mercredi, quand seul un intitulé générique type « Plat du jour »
+est publié) n'affichent simplement pas cette section plutôt que du contenu vide.
 
 ## Jours fériés & vacances scolaires
 
@@ -169,7 +166,7 @@ data/devoirs-*.json       Devoirs par enfant (généré par la GitHub Action, pa
 data/evaluations-*.json  Évaluations à venir par enfant (généré par la GitHub Action)
 data/moyennes-*.json     Moyennes par enfant (généré par la GitHub Action)
 data/notifications.json  Notifications du compte parent (généré par la GitHub Action)
-data/menu.json           Menu de la cantine par jour (généré par la GitHub Action)
+data/menu.json           Menu de la cantine par jour (saisi manuellement, pas la GitHub Action)
 manifest.json           Pour l'ajout à l'écran d'accueil
 OneSignalSDKWorker.js    Requis par OneSignal
 icons/                   Icônes de l'application
