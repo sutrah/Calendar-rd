@@ -166,10 +166,19 @@ function dateHasEval(childKey, iso) {
   return !!(evals && evals.length);
 }
 
+function normalizeSubjectName(s) {
+  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+
 function isEvalSlot(childKey, iso, slot) {
   const evals = evaluationsByDate(childKey)[iso];
   if (!evals) return false;
-  return evals.some((e) => e.subject === slot.subject && e.start === slot.start);
+  // Pronote renvoie les matières en MAJUSCULES ("PHYSIQUE-CHIMIE"), alors que
+  // l'emploi du temps saisi à la main utilise une casse normale
+  // ("Physique-Chimie") : comparaison insensible à la casse et aux accents.
+  return evals.some(
+    (e) => normalizeSubjectName(e.subject) === normalizeSubjectName(slot.subject) && e.start === slot.start
+  );
 }
 
 /** Le créneau est-il en train de se dérouler maintenant (pour le jour affiché) ? */
