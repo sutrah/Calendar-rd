@@ -98,6 +98,10 @@ parent, et dépose directement en FTP dans `data/` :
 - **Évaluations** (`evaluations-soren.json` / `evaluations-loise.json`) : les créneaux
   marqués comme contrôle/évaluation dans Pronote apparaissent en **orange** dans le
   planning (case du cours + lettre du jour dans le sélecteur de jours / vue Semaine).
+  Deux sources Pronote sont recoupées : la case « devoir » cochée directement sur le
+  cours dans l'emploi du temps, et le module séparé « Évaluations par compétences »
+  (acquis/paliers), qui ne coche pas toujours cette case mais que Pronote affiche quand
+  même dans son propre encart « Prochaines évaluations ».
 - **Moyennes** (`moyennes-soren.json` / `moyennes-loise.json`) : moyenne générale (donut)
   et moyenne par matière, affichées sous les devoirs. Les coefficients utilisés sont ceux
   déjà configurés dans Pronote par l'établissement (qui reflètent normalement les
@@ -106,26 +110,17 @@ parent, et dépose directement en FTP dans `data/` :
   (sécurité, communications, documents à fournir...) apparaissent dans un onglet dédié
   **Notifications**, avec un badge numérique tant qu'elles n'ont pas été consultées (marqué
   « vu » localement sur l'appareil, dès l'ouverture de l'onglet).
-- **Menu de la cantine** (`menu.json`) : le PDF du menu de la semaine, joint dans l'agenda
-  Pronote, est repéré automatiquement puis lu par l'**API Claude** (le PDF est une image
-  scannée, sans texte sélectionnable — une lecture classique du PDF est impossible). Le
-  menu du jour affiché s'affiche entre les devoirs et les moyennes, en vue **Jour**
-  uniquement. Cette recherche de pièce jointe est expérimentale : si le menu n'apparaît
-  jamais, regardez les logs de l'Action « Devoirs Pronote » (section `[menu]`) — il se peut
-  que la pièce jointe soit exposée différemment selon votre établissement, auquel cas
-  dites-moi précisément où vous cliquez dans Pronote pour l'atteindre.
+- **Menu de la cantine** (`menu-soren.json` / `menu-loise.json`, un fichier par enfant car
+  la cantine peut différer selon l'établissement) : récupéré directement via l'API native
+  de Pronote (le même menu que Pronote affiche dans son propre onglet Menus), pas besoin
+  de lire un PDF. Affiché entre les devoirs et les moyennes, en vue **Jour** uniquement,
+  pour le jour actuellement affiché.
 
 Secrets GitHub nécessaires (Settings → Secrets and variables → Actions), déjà créés :
 `PRONOTE_URL`, `PRONOTE_USERNAME`, `PRONOTE_PASSWORD` (votre compte **parent** Pronote,
 qui voit les deux enfants), `FTP_USERNAME`, `FTP_PASSWORD`. L'hôte FTP et le dossier
 distant (`/games/cal/data/`) sont écrits en clair dans
 `.github/workflows/devoirs.yml`.
-
-Un secret supplémentaire est nécessaire pour le menu de la cantine :
-`ANTHROPIC_API_KEY` — une clé API Claude, à créer sur https://console.anthropic.com puis à
-ajouter dans les secrets GitHub du dépôt (Settings → Secrets and variables → Actions → New
-repository secret). Sans ce secret, la section « Menu de la cantine » est simplement
-ignorée (aucune erreur bloquante pour le reste du site).
 
 Points importants :
 - Cette intégration utilise **pronotepy**, une bibliothèque non-officielle (Pronote n'a
@@ -169,7 +164,7 @@ data/devoirs-*.json       Devoirs par enfant (généré par la GitHub Action, pa
 data/evaluations-*.json  Évaluations à venir par enfant (généré par la GitHub Action)
 data/moyennes-*.json     Moyennes par enfant (généré par la GitHub Action)
 data/notifications.json  Notifications du compte parent (généré par la GitHub Action)
-data/menu.json           Menu de la cantine par jour (généré par la GitHub Action)
+data/menu-*.json         Menu de la cantine par enfant et par jour (généré par la GitHub Action)
 manifest.json           Pour l'ajout à l'écran d'accueil
 OneSignalSDKWorker.js    Requis par OneSignal
 icons/                   Icônes de l'application

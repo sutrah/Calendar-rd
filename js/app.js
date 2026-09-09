@@ -23,7 +23,7 @@ async function loadData() {
     devoirsSoren, devoirsLoise,
     evaluationsSoren, evaluationsLoise,
     moyennesSoren, moyennesLoise,
-    notifications, menu,
+    notifications, menuSoren, menuLoise,
   ] = await Promise.all([
     fetch('data/soren.json').then((r) => r.json()),
     fetch('data/loise.json').then((r) => r.json()),
@@ -35,14 +35,15 @@ async function loadData() {
     fetchJsonSafe('data/moyennes-soren.json'),
     fetchJsonSafe('data/moyennes-loise.json'),
     fetchJsonSafe('data/notifications.json'),
-    fetchJsonSafe('data/menu.json'),
+    fetchJsonSafe('data/menu-soren.json'),
+    fetchJsonSafe('data/menu-loise.json'),
   ]);
   state.data = {
     soren, loise, famille,
     devoirsSoren, devoirsLoise,
     evaluationsSoren, evaluationsLoise,
     moyennesSoren, moyennesLoise,
-    notifications, menu,
+    notifications, menuSoren, menuLoise,
   };
 }
 
@@ -291,7 +292,8 @@ function renderChildTab(main, child) {
   const devoirsData = childKey === 'soren' ? state.data.devoirsSoren : state.data.devoirsLoise;
   renderDevoirsSection(main, childKey, devoirsData, state.selectedDate);
 
-  renderMenuSection(main, state.data.menu, state.selectedDate);
+  const menuData = childKey === 'soren' ? state.data.menuSoren : state.data.menuLoise;
+  renderMenuSection(main, menuData, state.selectedDate);
 
   const moyennesData = childKey === 'soren' ? state.data.moyennesSoren : state.data.moyennesLoise;
   renderMoyennesSection(main, moyennesData);
