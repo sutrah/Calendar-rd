@@ -95,9 +95,12 @@ function renderDaySelector(monday, numDays, childKey) {
     const chip = document.createElement('div');
     const isToday = iso === toISO(startOfDay(new Date()));
     const isSelected = iso === toISO(state.selectedDate);
-    const hasEval = dateHasEval(childKey, iso);
-    chip.className = 'day-chip' + (isToday ? ' today' : '') + (isSelected ? ' selected' : '') + (hasEval ? ' has-eval' : '');
-    chip.innerHTML = `<span class="dow">${DOW_SHORT[d.getDay()]}</span><span class="num">${d.getDate()}</span>`;
+    const evalCount = (evaluationsByDate(childKey)[iso] || []).length;
+    chip.className = 'day-chip' + (isToday ? ' today' : '') + (isSelected ? ' selected' : '') + (evalCount ? ' has-eval' : '');
+    chip.innerHTML = `
+      <span class="dow">${DOW_SHORT[d.getDay()]}</span><span class="num">${d.getDate()}</span>
+      ${evalCount > 1 ? `<span class="day-eval-badge">${evalCount}</span>` : ''}
+    `;
     chip.addEventListener('click', () => {
       state.selectedDate = d;
       render();

@@ -242,6 +242,7 @@ main {
 }
 
 .day-chip {
+  position: relative;
   flex: 1 0 auto;
   min-width: 56px;
   scroll-snap-align: start;
@@ -731,7 +732,7 @@ nav.tabs button.active .tab-badge {
 /* Évaluations : mise en évidence orange */
 .slot-card.eval {
   box-shadow: 0 0 0 2px #ea580c;
-  background: rgba(234, 88, 12, 0.07);
+  background: rgba(234, 88, 12, 0.14);
 }
 
 .eval-badge {
@@ -747,17 +748,48 @@ nav.tabs button.active .tab-badge {
   vertical-align: middle;
 }
 
-.day-chip.has-eval .dow {
+.day-chip.has-eval {
+  background: rgba(234, 88, 12, 0.16);
+  border-color: #ea580c;
+}
+
+.day-chip.has-eval .dow,
+.day-chip.has-eval .num {
   color: #ea580c;
   font-weight: 800;
 }
 
-.day-chip.selected.has-eval .dow {
-  color: #fed7aa;
+.day-chip.selected.has-eval {
+  background: #ea580c;
+  border-color: #ea580c;
+}
+
+.day-chip.selected.has-eval .dow,
+.day-chip.selected.has-eval .num {
+  color: #fff;
+}
+
+.day-eval-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ea580c;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg);
 }
 
 .week-day-header.has-eval {
   color: #ea580c;
+  font-weight: 800;
 }
 
 /* Moyennes */
