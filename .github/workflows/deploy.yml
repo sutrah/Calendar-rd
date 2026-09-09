@@ -12,6 +12,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # state-name force un état de suivi propre à ce workflow : devoirs.yml dépose
+      # aussi dans /games/cal/data/ (sous-dossier de /games/cal/) avec son propre
+      # suivi, et a fini par y supprimer menu.json un jour où il n'était plus produit
+      # côté Python — suppression que le suivi de ce workflow-ci ignorait totalement,
+      # donc il ne re-déployait jamais le fichier qu'il croyait toujours en place.
       - name: Déployer en FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -21,6 +26,7 @@ jobs:
           protocol: ftp
           local-dir: ./
           server-dir: /games/cal/
+          state-name: .ftp-deploy-sync-state-site.json
           dangerous-clean-slate: false
           exclude: |
             **/.git*
