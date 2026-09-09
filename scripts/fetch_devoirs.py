@@ -401,6 +401,12 @@ def fetch_menu():
             print(f"[menu] '{name}' ignoré (erreur : {e})", file=sys.stderr)
 
     ftp.quit()
+    if not by_date:
+        # Aucun PDF n'a pu être lu (ex. API Claude en panne/sans crédit) :
+        # on n'écrase pas un menu.json existant (potentiellement saisi à la
+        # main) avec un fichier vide.
+        print(f"[menu] aucun des {len(names)} PDF n'a pu être lu, menu.json non modifié", file=sys.stderr)
+        return
     path = write_json("menu.json", {"updatedAt": date.today().isoformat(), "byDate": by_date})
     print(f"Écrit {path} : menu pour {len(by_date)} jour(s), source={len(names)} PDF(s)")
 

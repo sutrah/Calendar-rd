@@ -1,0 +1,65 @@
+{
+  "updatedAt": "2026-09-09",
+  "byDate": {
+    "2026-09-07": {
+      "entrees": ["Duo melon BIO", "Salade de blé", "Salade grecque"],
+      "plats": ["Pâtes aux légumes", "Pâtes BIO", "Porc aux pruneaux", "Poêlée indienne", "Épinards à la crème BIO"],
+      "laitiers": ["Yaourt sucré BIO", "Fromage à la coupe"],
+      "desserts": ["Fruit de saison", "Cône vanille", "Cône fraise", "Cône chocolat"]
+    },
+    "2026-09-08": {
+      "entrees": ["Macédoine", "Betteraves BIO et chèvre", "Feuilleté feta/tomate"],
+      "plats": ["Porc aux pruneaux", "Riz pilaf", "Curry de légumes d'été", "Courgettes sautées"],
+      "laitiers": ["Yaourt aux fruits BIO", "Fromage à la coupe"],
+      "desserts": ["Fruit de saison", "Flan nappé caramel BIO"]
+    },
+    "2026-09-09": {
+      "entrees": ["Entrée du jour"],
+      "plats": ["Plat du jour", "Légumes du jour"],
+      "laitiers": ["Produit laitier"],
+      "desserts": ["Fruit de saison", "Dessert du jour"]
+    },
+    "2026-09-10": {
+      "entrees": ["Riz à l'espagnol", "Duo de melons BIO", "Salade fermière"],
+      "plats": ["Cuisse de pintade au porto", "Pommes de terre grenaille", "Crumble pêche du jour", "Haricots verts BIO", "Petits pois à la française BIO"],
+      "laitiers": ["Petits suisses", "Fromage à la coupe"],
+      "desserts": ["Fruit de saison", "Muffin maison"]
+    },
+    "2026-09-11": {
+      "entrees": ["Duo de melons", "Tomate & anchois marinés"],
+      "plats": ["Boulettes de bœuf BIO sauce orientale", "Tendre de porc", "Filet mignon de porc", "Gratin courgettes/tomates BIO"],
+      "laitiers": ["Fromage blanc sucré BIO", "Fromage à la coupe"],
+      "desserts": ["Fruit de saison", "Pastèque"]
+    },
+    "2026-09-14": {
+      "entrees": ["Duo de melons", "Salade des causes", "Moules marinières"],
+      "plats": ["Émincé de dinde kebab", "Frites", "Jambon au porto", "Tomate provençale"],
+      "laitiers": ["Riz au lait BIO", "Fromage à la coupe"],
+      "desserts": ["Fruit de saison", "Compote BIO"]
+    },
+    "2026-09-15": {
+      "entrees": ["Concombres vinaigrette BIO", "Salade basque", "Salade vigneronne"],
+      "plats": ["Pané de fromage BIO", "Blé à la provençale", "Dos de cabillaud à la bulgare", "Ratatouille BIO"],
+      "laitiers": ["Yaourt brassé aux fruits", "Fromage à la coupe"],
+      "desserts": ["Fruit de saison", "Crème dessert chocolat BIO", "Crème dessert chocolat blanc BIO"]
+    },
+    "2026-09-16": {
+      "entrees": ["Entrée du jour"],
+      "plats": ["Plat du jour"],
+      "laitiers": ["Produit laitier"],
+      "desserts": ["Fruit de saison", "Dessert du jour"]
+    },
+    "2026-09-17": {
+      "entrees": ["Duo melon BIO", "Salade italienne", "Artichaut vinaigrette"],
+      "plats": ["Merguez", "Couscous BIO", "Travers de porc Tex Mex", "Légumes confits"],
+      "laitiers": ["Fromage blanc sucré BIO", "Fromage à la coupe"],
+      "desserts": ["Fruit de saison", "Gâteau bulgare"]
+    },
+    "2026-09-18": {
+      "entrees": ["Carottes râpées BIO", "Duo de melons"],
+      "plats": ["Blanquette de veau", "Riz pilaf", "Aubergine à la Parmigiana", "Bâtonnières de légumes"],
+      "laitiers": ["Yaourt aromatisé BIO", "Fromage à la coupe"],
+      "desserts": ["Fruit de saison", "Barre glacée Bounty", "Barre glacée Mars", "Barre glacée Twix", "Barre glacée Snickers"]
+    }
+  }
+}
