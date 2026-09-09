@@ -18,25 +18,23 @@ son propre try/except : si l'API pronotepy diffère légèrement d'une version �
 l'autre pour l'une d'elles, les autres sections continuent d'être écrites
 plutôt que de faire échouer tout le script.
 
-Le menu de cantine est un cas particulier, non lié à Pronote : l'établissement
-le publie en PDF (une image scannée, sans texte sélectionnable) sur la page
-d'accueil Pronote, un widget que la bibliothèque pronotepy ne permet pas de
-récupérer automatiquement. La famille dépose donc elle-même chaque PDF sur
-le FTP (dossier FTP_MENUS_DIR) ; ce script les lit et les envoie à l'API
-Claude (secret ANTHROPIC_API_KEY) pour en extraire le contenu structuré. Si
-le secret n'est pas défini ou le dossier est vide, cette section est
+Le menu de cantine est un cas particulier : l'établissement le publie en PDF
+(une image scannée, sans texte sélectionnable) sur la page d'accueil Pronote,
+un widget non couvert par les méthodes documentées de pronotepy — il faut
+appeler directement la fonction Pronote sous-jacente ("PageAccueil", trouvée
+en inspectant les requêtes réseau réelles du site). Le PDF ainsi récupéré
+est envoyé à l'API Claude (secret ANTHROPIC_API_KEY) pour en extraire le
+contenu structuré. Si le secret n'est pas défini, cette section est
 simplement ignorée (le reste du script fonctionne normalement).
 """
 
 import base64
-import ftplib
-import io
 import json
 import os
 import re
 import sys
 import unicodedata
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import pronotepy
 
@@ -113,47 +111,79 @@ def fetch_devoirs(client, key):
     print(f"Écrit {path} : {total} devoir(s) sur {len(by_date)} date(s)")
 
 
-# --- Évaluations (cours marqués comme contrôle/évaluation dans Pronote) ------
+# --- Évaluations (cours marqués contrôle/devoir OU évaluation de compétences) --
+#
+# pronotepy's lesson.test ne lit que cahierDeTextes.V.estDevoir (la case
+# "devoir/contrôle" classique). Les évaluations créées via le module
+# "Évaluations par compétences" posent un champ voisin dans le même objet,
+# cahierDeTextes.V.estEval, que la classe Lesson de pronotepy ne conserve
+# nulle part (elle jette le JSON brut une fois l'objet construit) — trouvé
+# en inspectant la réponse réelle de PageAccueil sur le compte de la
+# famille (le cours PHYSIQUE-CHIMIE du 10/09 a bien cahierDeTextes.V =
+# {"estEval": true, "originesCategorie": [{"L": "Évaluation de
+# compétences"}]}, sans estDevoir).
+#
+# On reproduit donc l'appel que fait client.lessons() en interne
+# (PageEmploiDuTemps, onglet 16) pour garder le dict JSON brut de chaque
+# cours à côté de l'objet Lesson, plutôt que d'appeler client.lessons()
+# telle quelle.
+
+def raw_lessons(client, date_from, date_to):
+    """Comme client.lessons(), mais renvoie des couples (Lesson, dict brut)
+    au lieu de simples Lesson — pour accéder aux champs que pronotepy ne
+    conserve pas (ex. cahierDeTextes.V.estEval)."""
+    user = client.parametres_utilisateur["dataSec"]["data"]["ressource"]
+    base_data = {
+        "ressource": user,
+        "avecAbsencesEleve": False,
+        "avecConseilDeClasse": True,
+        "estEDTPermanence": False,
+        "avecAbsencesRessource": True,
+        "avecDisponibilites": True,
+        "avecInfosPrefsGrille": True,
+        "Ressource": user,
+    }
+    if not isinstance(date_from, datetime):
+        date_from = datetime.combine(date_from, datetime.min.time())
+    if not isinstance(date_to, datetime):
+        date_to = datetime.combine(date_to, datetime.min.time())
+
+    pairs = []
+    for week in range(client.get_week(date_from), client.get_week(date_to) + 1):
+        data = dict(base_data, NumeroSemaine=week, numeroSemaine=week)
+        response = client.post("PageEmploiDuTemps", 16, data)
+        for raw in response["dataSec"]["data"]["ListeCours"]:
+            lesson = pronotepy.dataClasses.Lesson(client, raw)
+            if date_from <= lesson.start <= date_to:
+                pairs.append((lesson, raw))
+    return pairs
+
+
+def is_flagged_eval(raw_lesson):
+    cdt = (raw_lesson.get("cahierDeTextes") or {}).get("V") or {}
+    return bool(cdt.get("estDevoir")) or bool(cdt.get("estEval"))
+
 
 def fetch_evaluations(client, key):
     today = date.today()
     try:
-        lessons = client.lessons(date_from=today, date_to=today + timedelta(days=DAYS_AHEAD))
+        pairs = raw_lessons(client, today, today + timedelta(days=DAYS_AHEAD))
     except Exception as e:
         print(f"[évaluations] impossible de récupérer les cours : {e}", file=sys.stderr)
         return
 
-    # lesson.test ne reflète que la case "devoir/contrôle" cochée sur le
-    # cours dans l'emploi du temps. Les évaluations créées via le module
-    # "Évaluations par compétences" de Pronote (acquis, paliers...) ne cochent
-    # pas forcément cette case et ne remontent donc pas via lesson.test — on
-    # récupère la liste dédiée et on la recoupe par (date, matière) avec les
-    # cours pour retrouver le créneau horaire exact à mettre en évidence.
-    eval_keys = set()
-    try:
-        for ev in client.current_period.evaluations:
-            ev_date = get_val(ev, "date", None)
-            subject = get_val(ev, "subject", None)
-            subject_name = get_val(subject, "name", "") if subject else ""
-            if ev_date is not None:
-                eval_keys.add((ev_date.isoformat(), subject_name))
-    except Exception as e:
-        print(f"[évaluations] évaluations par compétences ignorées (erreur : {e})", file=sys.stderr)
-
     by_date = {}
-    for lesson in lessons:
+    for lesson, raw in pairs:
         try:
+            if not is_flagged_eval(raw):
+                continue
             d = get_val(lesson, "start", None)
             if d is None:
                 continue
             subject = get_val(lesson, "subject", None)
             subject_name = get_val(subject, "name", "") if subject else ""
-            iso = d.date().isoformat()
-            is_exam = bool(get_val(lesson, "test", False)) or (iso, subject_name) in eval_keys
-            if not is_exam:
-                continue
             end = get_val(lesson, "end", None)
-            by_date.setdefault(iso, []).append(
+            by_date.setdefault(d.date().isoformat(), []).append(
                 {
                     "subject": subject_name,
                     "start": d.strftime("%H:%M"),
@@ -271,23 +301,20 @@ def fetch_notifications(login_fn):
     print(f"Écrit {path} : {len(items)} notification(s)")
 
 
-# --- Menu de cantine (PDF déposé manuellement sur le FTP, lu par l'API Claude) --
+# --- Menu de cantine (PDF joint à un évènement d'agenda, lu par l'API Claude) --
 #
-# Le menu n'est récupérable de façon fiable ni via le module "Menus" natif
-# de Pronote (client.menus() renvoie 0 jour, l'établissement ne l'utilise
-# pas), ni via le "Cahier de texte" (pas une pièce jointe de cours), ni via
-# les informations/actualités (information_and_surveys() ne les liste pas
-# non plus) : le PDF scanné (sans texte, illisible par extraction classique)
-# vient de la page d'accueil Pronote ("Agenda"), qui agrège des widgets non
-# exposés par la bibliothèque pronotepy.
-#
-# La famille dépose donc elle-même chaque nouveau PDF de menu dans un
-# dossier FTP dédié (FTP_MENUS_DIR) quand l'établissement le publie ; cette
-# section liste ce dossier, télécharge chaque PDF et l'envoie à l'API
+# Ni le module "Menus" natif de Pronote (client.menus() renvoie 0 jour,
+# l'établissement ne l'utilise pas) ni les informations/actualités
+# (information_and_surveys()) n'exposent le menu. Il vient en fait de
+# l'agenda de la page d'accueil ("PageAccueil", onglet 7 — introuvable dans
+# pronotepy, trouvé en inspectant les vraies requêtes réseau du site) :
+# dataSec.data.agenda.listeEvenements contient des évènements "Menu du self
+# du ... au ...", avec des pièces jointes au format JSON exact attendu par
+# la classe Attachment de pronotepy ({"L": nom, "N": id, "G": type}) — donc
+# réutilisable telle quelle pour construire l'URL signée et télécharger le
+# PDF, sans deviner de format manuellement. Le PDF est une image scannée
+# (sans texte, illisible par extraction classique), donc envoyé à l'API
 # Claude pour en extraire le contenu structuré.
-
-FTP_HOST = "ftp.cluster026.hosting.ovh.net"
-FTP_MENUS_DIR = "/games/cal/menus-pdf"
 
 MENU_JSON_SCHEMA = {
     "type": "object",
@@ -354,112 +381,54 @@ def parse_menu_pdf(pdf_bytes, filename):
     return json.loads(text)
 
 
-def fetch_menu():
-    username = os.environ.get("FTP_USERNAME")
-    password = os.environ.get("FTP_PASSWORD")
-    if not username or not password:
-        print("[menu] FTP_USERNAME/FTP_PASSWORD absents : section ignorée", file=sys.stderr)
-        return
-
+def fetch_menu(client):
     try:
-        ftp = ftplib.FTP(FTP_HOST, username, password, timeout=30)
-        try:
-            ftp.cwd(FTP_MENUS_DIR)
-        except ftplib.error_perm:
-            # Dossier pas encore créé : on le crée pour la prochaine fois.
-            ftp.mkd(FTP_MENUS_DIR)
-            ftp.cwd(FTP_MENUS_DIR)
-        names = [n for n in ftp.nlst() if n.lower().endswith(".pdf")]
+        response = client.post("PageAccueil", 7, {})
     except Exception as e:
-        print(f"[menu] impossible de lister {FTP_MENUS_DIR} sur le FTP (erreur : {e})", file=sys.stderr)
+        print(f"[menu] impossible d'appeler PageAccueil (erreur : {e})", file=sys.stderr)
         return
 
-    if not names:
-        print(f"[menu] aucun PDF dans {FTP_MENUS_DIR}", file=sys.stderr)
-        ftp.quit()
+    events = (response.get("dataSec", {}).get("data", {}).get("agenda", {}) or {}).get("listeEvenements", [])
+    menu_events = [e for e in events if "menu" in (e.get("L") or "").lower()]
+    if not menu_events:
+        print("[menu] aucun évènement d'agenda contenant 'menu' dans le titre", file=sys.stderr)
         return
 
     by_date = {}
-    for name in names:
-        try:
-            buf = io.BytesIO()
-            ftp.retrbinary(f"RETR {name}", buf.write)
-            parsed = parse_menu_pdf(buf.getvalue(), name)
-            if not parsed:
+    pdf_count = 0
+    for event in menu_events:
+        title = event.get("L", "")
+        for pj in event.get("PiecesJointes", []) or []:
+            name = pj.get("L", "")
+            if not name.lower().endswith(".pdf"):
                 continue
-            for day in parsed.get("days", []):
-                d = day.get("date")
-                if not d:
+            pdf_count += 1
+            try:
+                attachment = pronotepy.dataClasses.Attachment(client, pj)
+                parsed = parse_menu_pdf(attachment.data, attachment.name)
+                if not parsed:
                     continue
-                by_date[d] = {
-                    "entrees": day.get("entrees", []),
-                    "plats": day.get("plats", []),
-                    "laitiers": day.get("laitiers", []),
-                    "desserts": day.get("desserts", []),
-                }
-        except Exception as e:
-            print(f"[menu] '{name}' ignoré (erreur : {e})", file=sys.stderr)
+                for day in parsed.get("days", []):
+                    d = day.get("date")
+                    if not d:
+                        continue
+                    by_date[d] = {
+                        "entrees": day.get("entrees", []),
+                        "plats": day.get("plats", []),
+                        "laitiers": day.get("laitiers", []),
+                        "desserts": day.get("desserts", []),
+                    }
+            except Exception as e:
+                print(f"[menu] pièce jointe de '{title}' ignorée (erreur : {e})", file=sys.stderr)
 
-    ftp.quit()
     if not by_date:
         # Aucun PDF n'a pu être lu (ex. API Claude en panne/sans crédit) :
         # on n'écrase pas un menu.json existant (potentiellement saisi à la
         # main) avec un fichier vide.
-        print(f"[menu] aucun des {len(names)} PDF n'a pu être lu, menu.json non modifié", file=sys.stderr)
+        print(f"[menu] aucun des {pdf_count} PDF n'a pu être lu, menu.json non modifié", file=sys.stderr)
         return
     path = write_json("menu.json", {"updatedAt": date.today().isoformat(), "byDate": by_date})
-    print(f"Écrit {path} : menu pour {len(by_date)} jour(s), source={len(names)} PDF(s)")
-
-
-# --- Diagnostic temporaire : PageAccueil (onglet 7) -------------------------
-#
-# "Prochaines évaluations de compétences" (et les autres widgets de la page
-# d'accueil) ne sont exposés par aucune méthode pronotepy documentée — trouvé
-# en inspectant les requêtes réseau réelles du site Pronote (onglet Réseau
-# des outils de développement) : la fonction s'appelle "PageAccueil", onglet
-# 7. On journalise sa réponse brute (jamais écrite dans out/, donc jamais
-# déployée) pour en découvrir la structure avant d'écrire le vrai parsing.
-
-def debug_page_accueil(client):
-    try:
-        response = client.post("PageAccueil", 7, {})
-    except Exception as e:
-        print(f"[debug PageAccueil] échec de l'appel (erreur : {e})", file=sys.stderr)
-        return
-
-    data = response.get("dataSec", {}).get("data", {})
-    print(f"[debug PageAccueil] clés de premier niveau : {sorted(data.keys())}", file=sys.stderr)
-
-    # Recherche ciblée du widget "évaluations" plutôt qu'un dump complet :
-    # on descend récursivement jusqu'à trouver "PHYSIQUE-CHIMIE" (le cours
-    # de l'évaluation connue), puis on affiche le sous-arbre qui la contient
-    # en remontant jusqu'à la clé de premier niveau correspondante.
-    def find_path(obj, target, path=()):
-        if isinstance(obj, dict):
-            for k, v in obj.items():
-                if isinstance(v, str) and target in v:
-                    return path + (k,)
-                found = find_path(v, target, path + (k,))
-                if found:
-                    return found
-        elif isinstance(obj, list):
-            for i, v in enumerate(obj):
-                found = find_path(v, target, path + (i,))
-                if found:
-                    return found
-        return None
-
-    path = find_path(data, "PHYSIQUE-CHIMIE")
-    if not path:
-        print("[debug PageAccueil] 'PHYSIQUE-CHIMIE' introuvable dans la réponse", file=sys.stderr)
-        return
-    print(f"[debug PageAccueil] trouvé sous le chemin : {path}", file=sys.stderr)
-
-    # Remonte au premier niveau (data[path[0]]) et affiche ce sous-objet entier.
-    top_key = path[0]
-    sub = json.dumps(data[top_key], ensure_ascii=False, indent=2)
-    print(f"[debug PageAccueil] contenu de data['{top_key}'] (tronqué à 6000 caractères) :", file=sys.stderr)
-    print(sub[:6000], file=sys.stderr)
+    print(f"Écrit {path} : menu pour {len(by_date)} jour(s), source={pdf_count} PDF(s)")
 
 
 def login():
@@ -504,14 +473,9 @@ def main():
         print(f"[notifications] section entière ignorée (erreur : {e})", file=sys.stderr)
 
     try:
-        fetch_menu()
+        fetch_menu(login_as_child("loise"))
     except Exception as e:
         print(f"[menu] section entière ignorée (erreur : {e})", file=sys.stderr)
-
-    try:
-        debug_page_accueil(login_as_child("loise"))
-    except Exception as e:
-        print(f"[debug PageAccueil] section ignorée (erreur : {e})", file=sys.stderr)
 
     try:
         found = list_child_keys()
