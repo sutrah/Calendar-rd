@@ -806,6 +806,35 @@ nav.tabs button.active .tab-badge {
   margin-left: 2px;
 }
 
+.menu-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menu-row {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.menu-label {
+  flex: 0 0 auto;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-muted);
+  min-width: 90px;
+}
+
+.menu-items {
+  font-size: 14px;
+  color: var(--text);
+}
+
 .moyenne-card {
   background: var(--surface);
   border: 1px solid var(--border);

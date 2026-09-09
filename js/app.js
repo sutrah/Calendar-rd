@@ -23,7 +23,7 @@ async function loadData() {
     devoirsSoren, devoirsLoise,
     evaluationsSoren, evaluationsLoise,
     moyennesSoren, moyennesLoise,
-    notifications,
+    notifications, menu,
   ] = await Promise.all([
     fetch('data/soren.json').then((r) => r.json()),
     fetch('data/loise.json').then((r) => r.json()),
@@ -35,13 +35,14 @@ async function loadData() {
     fetchJsonSafe('data/moyennes-soren.json'),
     fetchJsonSafe('data/moyennes-loise.json'),
     fetchJsonSafe('data/notifications.json'),
+    fetchJsonSafe('data/menu.json'),
   ]);
   state.data = {
     soren, loise, famille,
     devoirsSoren, devoirsLoise,
     evaluationsSoren, evaluationsLoise,
     moyennesSoren, moyennesLoise,
-    notifications,
+    notifications, menu,
   };
 }
 
@@ -290,6 +291,8 @@ function renderChildTab(main, child) {
   const devoirsData = childKey === 'soren' ? state.data.devoirsSoren : state.data.devoirsLoise;
   renderDevoirsSection(main, childKey, devoirsData, state.selectedDate);
 
+  renderMenuSection(main, state.data.menu, state.selectedDate);
+
   const moyennesData = childKey === 'soren' ? state.data.moyennesSoren : state.data.moyennesLoise;
   renderMoyennesSection(main, moyennesData);
 }
@@ -383,6 +386,42 @@ function renderDevoirsSection(main, childKey, devoirsData, selectedDate) {
 
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/* --- Menu de la cantine (extrait du PDF Pronote par l'API Claude) --- */
+
+function renderMenuSection(main, menuData, selectedDate) {
+  if (!menuData || !menuData.byDate) return;
+  const iso = toISO(selectedDate);
+  const jour = menuData.byDate[iso];
+  if (!jour) return;
+
+  const categories = [
+    ['entrees', '🥗 Entrée'],
+    ['plats', '🍽️ Plat'],
+    ['laitiers', '🧀 Laitage'],
+    ['desserts', '🍰 Dessert'],
+  ];
+  const hasAny = categories.some(([key]) => (jour[key] || []).length > 0);
+  if (!hasAny) return;
+
+  const title = document.createElement('div');
+  title.className = 'section-title';
+  title.textContent = `🍴 Menu de la cantine — ${formatLongDate(selectedDate)}`;
+  main.appendChild(title);
+
+  const card = document.createElement('div');
+  card.className = 'menu-card';
+  card.innerHTML = categories
+    .filter(([key]) => (jour[key] || []).length > 0)
+    .map(([key, label]) => `
+      <div class="menu-row">
+        <span class="menu-label">${label}</span>
+        <span class="menu-items">${jour[key].map((item) => escapeHtml(item)).join(', ')}</span>
+      </div>
+    `)
+    .join('');
+  main.appendChild(card);
 }
 
 /* --- Moyennes (moyenne générale + par matière, calculées par Pronote) --- */

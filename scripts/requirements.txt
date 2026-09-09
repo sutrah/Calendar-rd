@@ -1,1 +1,2 @@
 pronotepy>=2.14,<3
+anthropic>=0.40
