@@ -25,6 +25,7 @@ jobs:
           PRONOTE_URL: ${{ secrets.PRONOTE_URL }}
           PRONOTE_USERNAME: ${{ secrets.PRONOTE_USERNAME }}
           PRONOTE_PASSWORD: ${{ secrets.PRONOTE_PASSWORD }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python scripts/fetch_devoirs.py
 
       - name: Déployer les devoirs en FTP

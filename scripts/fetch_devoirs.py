@@ -17,8 +17,17 @@ Chaque section (évaluations, moyennes, notifications, menu) est protégée par
 son propre try/except : si l'API pronotepy diffère légèrement d'une version à
 l'autre pour l'une d'elles, les autres sections continuent d'être écrites
 plutôt que de faire échouer tout le script.
+
+Le menu de cantine est un cas particulier : l'établissement le publie comme
+pièce jointe PDF (une image scannée, sans texte sélectionnable) sur une
+information "Menu du self du ... au ...", commune aux deux enfants. Le PDF
+est donc envoyé à l'API Claude (secret ANTHROPIC_API_KEY) pour être lu et
+structuré en JSON, comme le ferait un humain. Si ce secret n'est pas défini,
+cette section est simplement ignorée (le reste du script fonctionne
+normalement).
 """
 
+import base64
 import json
 import os
 import re
@@ -259,42 +268,132 @@ def fetch_notifications(login_fn):
     print(f"Écrit {path} : {len(items)} notification(s)")
 
 
-# --- Menu de cantine (API Pronote native, une cantine peut différer par enfant) --
+# --- Menu de cantine (PDF joint à une information Pronote, lu par l'API Claude) --
+#
+# L'établissement ne publie pas le menu via le module "Menus" natif de
+# Pronote (client.menus() renvoie 0 jour) ni comme pièce jointe de cours :
+# il l'envoie comme information/actualité "Menu du self du ... au ..."
+# (visible dans Communication > Agenda côté Pronote), avec un PDF scanné
+# (sans texte, donc illisible par extraction classique) en pièce jointe,
+# commune aux deux enfants. On repère ces informations parmi celles déjà
+# listées par information_and_surveys(), on télécharge leur PDF, et on
+# l'envoie à l'API Claude pour en extraire le contenu structuré.
 
-def food_names(foods):
-    return [n for n in (get_val(f, "name", "") for f in (foods or [])) if n]
+MENU_JSON_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "days": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "date": {"type": "string", "description": "Date ISO YYYY-MM-DD"},
+                    "entrees": {"type": "array", "items": {"type": "string"}},
+                    "plats": {"type": "array", "items": {"type": "string"}},
+                    "laitiers": {"type": "array", "items": {"type": "string"}},
+                    "desserts": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": ["date", "entrees", "plats", "laitiers", "desserts"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["days"],
+    "additionalProperties": False,
+}
+
+MENU_PROMPT = """Ce PDF est le menu de la cantine scolaire pour une semaine (lycée/collège français).
+Il liste, pour chaque jour de la semaine (colonnes), les plats servis au déjeuner, groupés par
+catégorie (lignes) : Entrées, Plats (parfois séparés en "Plat du jour" + "Légumes du jour"),
+Produits laitiers, Desserts.
+
+Extrais le contenu en JSON structuré : un élément de "days" par jour présent sur le document,
+avec sa date exacte au format ISO (YYYY-MM-DD ; l'année est {year} sauf indication contraire
+explicite sur le document) et la liste des plats de chaque catégorie tels qu'écrits sur le
+document (ne traduis pas, ne résume pas, un plat par élément de tableau). Si une catégorie
+n'affiche qu'un intitulé générique sans plat précisé (ex. "Plat du jour" seul, sans détail),
+laisse le tableau correspondant vide plutôt que d'inventer un plat. N'inclus que les jours qui
+ont effectivement une colonne de menu sur le document."""
 
 
-def fetch_menu(client, key):
-    today = date.today()
+def parse_menu_pdf(pdf_bytes, filename):
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        print("[menu] secret ANTHROPIC_API_KEY absent : section ignorée", file=sys.stderr)
+        return None
+
+    import anthropic
+
+    client = anthropic.Anthropic(api_key=api_key)
+    b64 = base64.standard_b64encode(pdf_bytes).decode()
+    response = client.messages.create(
+        model="claude-opus-5",
+        max_tokens=4000,
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": b64}},
+                    {"type": "text", "text": MENU_PROMPT.format(year=date.today().year)},
+                ],
+            }
+        ],
+        output_config={"format": {"type": "json_schema", "schema": MENU_JSON_SCHEMA}},
+    )
+    text = next(b.text for b in response.content if b.type == "text")
+    return json.loads(text)
+
+
+def fetch_menu(login_fn):
+    """login_fn : fonction sans argument qui renvoie une connexion Pronote
+    fraîche (ex. la fonction login() elle-même) — même schéma que
+    fetch_notifications, pour la même raison (une session par pièce
+    jointe téléchargée)."""
     try:
-        menus = client.menus(date_from=today, date_to=today + timedelta(days=DAYS_AHEAD))
+        infos = login_fn().information_and_surveys()
     except Exception as e:
-        print(f"[menu] impossible de récupérer les menus : {e}", file=sys.stderr)
+        print(f"[menu] impossible de récupérer les informations : {e}", file=sys.stderr)
+        return
+
+    menu_infos = [i for i in infos if "menu" in (get_val(i, "title", "") or "").lower()]
+    if not menu_infos:
+        print("[menu] aucune information contenant 'menu' dans le titre", file=sys.stderr)
         return
 
     by_date = {}
-    for menu in menus:
+    for info in menu_infos:
+        title = get_val(info, "title", "") or ""
+        raw_id = get_val(info, "id", None)
         try:
-            if not get_val(menu, "is_lunch", True):
-                continue  # on n'affiche que le déjeuner, pas le dîner (internat)
-            d = get_val(menu, "date", None)
-            if d is None:
+            fresh_infos = login_fn().information_and_surveys()
+            fresh_info = next((i for i in fresh_infos if get_val(i, "id", None) == raw_id), None)
+            if fresh_info is None:
                 continue
-            iso = d.isoformat()
-            entry = by_date.setdefault(iso, {"entrees": [], "plats": [], "laitiers": [], "desserts": []})
-            entry["entrees"] += food_names(get_val(menu, "first_meal", None))
-            entry["plats"] += (
-                food_names(get_val(menu, "main_meal", None))
-                + food_names(get_val(menu, "side_meal", None))
-                + food_names(get_val(menu, "other_meal", None))
-            )
-            entry["laitiers"] += food_names(get_val(menu, "cheese", None))
-            entry["desserts"] += food_names(get_val(menu, "dessert", None))
+            attachments = get_val(fresh_info, "attachments", []) or []
+            pdf = next((a for a in attachments if (get_val(a, "name", "") or "").lower().endswith(".pdf")), None)
+            if pdf is None:
+                print(f"[menu] '{title}' n'a pas de pièce jointe PDF", file=sys.stderr)
+                continue
+            pdf_bytes = get_val(pdf, "data", None)
+            if not pdf_bytes:
+                continue
+            parsed = parse_menu_pdf(pdf_bytes, get_val(pdf, "name", title))
+            if not parsed:
+                continue
+            for day in parsed.get("days", []):
+                d = day.get("date")
+                if not d:
+                    continue
+                by_date[d] = {
+                    "entrees": day.get("entrees", []),
+                    "plats": day.get("plats", []),
+                    "laitiers": day.get("laitiers", []),
+                    "desserts": day.get("desserts", []),
+                }
         except Exception as e:
-            print(f"[menu] jour ignoré (erreur : {e})", file=sys.stderr)
+            print(f"[menu] '{title}' ignoré (erreur : {e})", file=sys.stderr)
 
-    path = write_json(f"menu-{key}.json", {"updatedAt": today.isoformat(), "byDate": by_date})
+    path = write_json("menu.json", {"updatedAt": date.today().isoformat(), "byDate": by_date})
     print(f"Écrit {path} : menu pour {len(by_date)} jour(s)")
 
 
@@ -340,6 +439,11 @@ def main():
         print(f"[notifications] section entière ignorée (erreur : {e})", file=sys.stderr)
 
     try:
+        fetch_menu(login)
+    except Exception as e:
+        print(f"[menu] section entière ignorée (erreur : {e})", file=sys.stderr)
+
+    try:
         found = list_child_keys()
     except Exception as e:
         print(f"Impossible de lister les enfants du compte Pronote (erreur : {e})", file=sys.stderr)
@@ -353,7 +457,6 @@ def main():
             (fetch_devoirs, "devoirs"),
             (fetch_evaluations, "évaluations"),
             (fetch_moyennes, "moyennes"),
-            (fetch_menu, "menu"),
         ):
             try:
                 fn(login_as_child(key), key)
