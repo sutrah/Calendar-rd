@@ -13,12 +13,6 @@
       "laitiers": ["Yaourt aux fruits BIO", "Fromage à la coupe"],
       "desserts": ["Fruit de saison", "Flan nappé caramel BIO"]
     },
-    "2026-09-09": {
-      "entrees": ["Entrée du jour"],
-      "plats": ["Plat du jour", "Légumes du jour"],
-      "laitiers": ["Produit laitier"],
-      "desserts": ["Fruit de saison", "Dessert du jour"]
-    },
     "2026-09-10": {
       "entrees": ["Riz à l'espagnol", "Duo de melons BIO", "Salade fermière"],
       "plats": ["Cuisse de pintade au porto", "Pommes de terre grenaille", "Crumble pêche du jour", "Haricots verts BIO", "Petits pois à la française BIO"],
@@ -42,12 +36,6 @@
       "plats": ["Pané de fromage BIO", "Blé à la provençale", "Dos de cabillaud à la bulgare", "Ratatouille BIO"],
       "laitiers": ["Yaourt brassé aux fruits", "Fromage à la coupe"],
       "desserts": ["Fruit de saison", "Crème dessert chocolat BIO", "Crème dessert chocolat blanc BIO"]
-    },
-    "2026-09-16": {
-      "entrees": ["Entrée du jour"],
-      "plats": ["Plat du jour"],
-      "laitiers": ["Produit laitier"],
-      "desserts": ["Fruit de saison", "Dessert du jour"]
     },
     "2026-09-17": {
       "entrees": ["Duo melon BIO", "Salade italienne", "Artichaut vinaigrette"],
