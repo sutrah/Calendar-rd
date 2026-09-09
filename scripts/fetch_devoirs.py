@@ -411,6 +411,27 @@ def fetch_menu():
     print(f"Écrit {path} : menu pour {len(by_date)} jour(s), source={len(names)} PDF(s)")
 
 
+# --- Diagnostic temporaire : PageAccueil (onglet 7) -------------------------
+#
+# "Prochaines évaluations de compétences" (et les autres widgets de la page
+# d'accueil) ne sont exposés par aucune méthode pronotepy documentée — trouvé
+# en inspectant les requêtes réseau réelles du site Pronote (onglet Réseau
+# des outils de développement) : la fonction s'appelle "PageAccueil", onglet
+# 7. On journalise sa réponse brute (jamais écrite dans out/, donc jamais
+# déployée) pour en découvrir la structure avant d'écrire le vrai parsing.
+
+def debug_page_accueil(client):
+    try:
+        response = client.post("PageAccueil", 7, {})
+    except Exception as e:
+        print(f"[debug PageAccueil] échec de l'appel (erreur : {e})", file=sys.stderr)
+        return
+    dump = json.dumps(response, ensure_ascii=False, indent=2)
+    print("[debug PageAccueil] réponse brute (tronquée à 8000 caractères) :", file=sys.stderr)
+    print(dump[:8000], file=sys.stderr)
+    print(f"[debug PageAccueil] longueur totale : {len(dump)} caractères", file=sys.stderr)
+
+
 def login():
     """Nouvelle connexion Pronote. Pronote invalide la session ("La page a
     expiré !") si trop de requêtes s'enchaînent sur un même identifiant de
@@ -456,6 +477,11 @@ def main():
         fetch_menu()
     except Exception as e:
         print(f"[menu] section entière ignorée (erreur : {e})", file=sys.stderr)
+
+    try:
+        debug_page_accueil(login_as_child("loise"))
+    except Exception as e:
+        print(f"[debug PageAccueil] section ignorée (erreur : {e})", file=sys.stderr)
 
     try:
         found = list_child_keys()
