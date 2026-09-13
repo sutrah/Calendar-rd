@@ -47,11 +47,10 @@ async function loadData() {
 }
 
 function initialSelectedDate() {
-  const today = startOfDay(new Date());
-  const dow = today.getDay();
-  if (dow === 0) return addDays(today, 1); // dimanche -> lundi
-  if (dow === 6) return addDays(today, 2); // samedi -> lundi
-  return today;
+  // Toujours le jour du jour, week-end compris : dimanche affiche "Pas de cours"
+  // mais surtout les devoirs du lundi (affichés sous le jour précédent) — sauter
+  // directement au lundi masquait cet aperçu et le samedi de Loïse (taekwondo).
+  return startOfDay(new Date());
 }
 
 function slotsForDate(child, date) {
@@ -72,12 +71,6 @@ function slotsForDate(child, date) {
   const all = [...base, ...additions];
   all.sort((a, b) => a.start.localeCompare(b.start));
   return all;
-}
-
-/** Jours de la semaine à afficher pour cet enfant : lundi-vendredi, + samedi si une activité y est prévue. */
-function getChildDays(child) {
-  const hasSaturday = (child.slots || []).some((s) => s.day === 'samedi');
-  return hasSaturday ? [...SCHOOL_DAYS, 'samedi'] : SCHOOL_DAYS;
 }
 
 function renderTabs() {
@@ -249,7 +242,10 @@ function renderWeekView(main, child, monday, numDays, childKey) {
 function renderChildTab(main, child) {
   const childKey = child === state.data.soren ? 'soren' : 'loise';
   const monday = getMonday(state.selectedDate);
-  const numDays = getChildDays(child).length;
+  // Toujours lundi-dimanche : le week-end complet reste affiché (même sans activité)
+  // pour que le dimanche soit sélectionnable et donne accès à l'aperçu des devoirs
+  // du lundi (affichés sous le jour précédent).
+  const numDays = 7;
   const hasWeekAlternation = (child.slots || []).some((s) => s.week);
 
   main.appendChild(renderWeekNav(monday, hasWeekAlternation));
@@ -267,7 +263,12 @@ function renderChildTab(main, child) {
     return;
   }
 
-  main.appendChild(renderDaySelector(monday, numDays, childKey));
+  const daySelector = renderDaySelector(monday, numDays, childKey);
+  main.appendChild(daySelector);
+  // Le dimanche (ajouté pour l'aperçu des devoirs du lundi) peut se retrouver hors du
+  // cadre visible sur mobile puisque la rangée défile horizontalement : on s'assure que
+  // le jour sélectionné reste toujours visible sans avoir à faire glisser soi-même.
+  daySelector.querySelector('.day-chip.selected')?.scrollIntoView({ block: 'nearest', inline: 'center' });
 
   const iso = toISO(state.selectedDate);
   const ferie = ferieDuJour(iso);

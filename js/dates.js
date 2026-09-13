@@ -40,10 +40,10 @@ function formatLongDate(date) {
 }
 
 function formatWeekRange(monday) {
-  const friday = addDays(monday, 4);
-  const sameMonth = monday.getMonth() === friday.getMonth();
+  const sunday = addDays(monday, 6);
+  const sameMonth = monday.getMonth() === sunday.getMonth();
   const startStr = `${monday.getDate()}${sameMonth ? '' : ' ' + MONTHS_FR[monday.getMonth()]}`;
-  const endStr = `${friday.getDate()} ${MONTHS_FR[friday.getMonth()]}`;
+  const endStr = `${sunday.getDate()} ${MONTHS_FR[sunday.getMonth()]}`;
   return `Semaine du ${startStr} au ${endStr}`;
 }
 

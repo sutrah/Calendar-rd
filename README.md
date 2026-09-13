@@ -25,7 +25,9 @@ des documents fournis (photos, puis captures d'écran de l'EDT réel) et vérifi
 `reviewed` est à `true`. Si vous repérez une erreur, corrigez-la via la page **Modifier**.
 
 Un bouton **Jour / Semaine** en haut de chaque onglet permet de basculer entre l'agenda
-d'une seule journée et la vue de toute la semaine.
+d'une seule journée et la vue de toute la semaine. Le week-end (samedi et dimanche) est
+toujours affiché, même sans cours ce jour-là : le dimanche reste consultable pour voir les
+devoirs du lundi (affichés sous le jour précédent, voir plus bas).
 
 L'emploi du temps de Sören alterne certains jours (lundi et mercredi) entre deux versions,
 « Semaine Q1 » et « Semaine Q2 », comme au collège. Le site calcule automatiquement quelle
