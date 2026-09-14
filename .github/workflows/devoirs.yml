@@ -2,7 +2,14 @@ name: Devoirs Pronote
 
 on:
   schedule:
-    - cron: '0 5 * * *'
+    # Heures Paris (CEST, UTC+2 en ce moment) : 12h, 15h, 16h, 17h, 19h.
+    # GitHub Actions n'a pas de fuseau horaire : à ajuster de ±1h aux changements
+    # d'heure d'été/hiver (dernier dimanche de mars/octobre) si besoin.
+    - cron: '0 10 * * *'
+    - cron: '0 13 * * *'
+    - cron: '0 14 * * *'
+    - cron: '0 15 * * *'
+    - cron: '0 17 * * *'
   workflow_dispatch: {}
 
 jobs:

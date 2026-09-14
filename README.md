@@ -89,8 +89,10 @@ Configuration (à faire une seule fois) :
 
 ## Données Pronote (automatique)
 
-Une GitHub Action tourne chaque matin (5h UTC), se connecte à Pronote avec votre compte
-parent, et dépose directement en FTP dans `data/` :
+Une GitHub Action tourne 5 fois par jour (12h, 15h, 16h, 17h et 19h heure de Paris — soit
+10h, 13h, 14h, 15h et 17h UTC en ce moment, à ajuster de ±1h aux changements d'heure
+d'été/hiver dans `.github/workflows/devoirs.yml` si besoin), se connecte à Pronote avec
+votre compte parent, et dépose directement en FTP dans `data/` :
 
 - **Devoirs** (`devoirs-soren.json` / `devoirs-loise.json`) : affichés sous le planning du
   jour (**vue Jour uniquement**, pas la vue Semaine), pour le jour suivant celui affiché.
