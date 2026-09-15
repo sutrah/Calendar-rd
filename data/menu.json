@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-09",
+  "updatedAt": "2026-09-15",
   "byDate": {
     "2026-09-07": {
       "entrees": ["Duo melon BIO", "Salade de blé", "Salade grecque"],
@@ -48,6 +48,30 @@
       "plats": ["Blanquette de veau", "Riz pilaf", "Aubergine à la Parmigiana", "Bâtonnières de légumes"],
       "laitiers": ["Yaourt aromatisé BIO", "Fromage à la coupe"],
       "desserts": ["Fruit de saison", "Barre glacée Bounty", "Barre glacée Mars", "Barre glacée Twix", "Barre glacée Snickers"]
+    },
+    "2026-09-28": {
+      "entrees": ["Pois chiches à la noisette", "Betteraves BIO", "Radis BIO"],
+      "plats": ["Lentilles cuisinées aux carottes", "Riz pilaf", "Poisson meunière frais", "Fondue de poireaux"],
+      "laitiers": ["Fromage à la coupe", "Yaourt sucré BIO"],
+      "desserts": ["Fruit de saison", "Bâtonnet de glace"]
+    },
+    "2026-09-29": {
+      "entrees": ["Céleri rémoulade", "Pamplemousse BIO", "Moules marinières"],
+      "plats": ["Gratin de raviolis", "Raviolis végétarien"],
+      "laitiers": ["Fromage à la coupe", "Yaourt aromatisé BIO"],
+      "desserts": ["Fruit de saison", "Île flottante"]
+    },
+    "2026-10-01": {
+      "entrees": ["Carottes râpées aux pommes", "Pêche au thon", "Salade de perle pêcheur"],
+      "plats": ["Grignotte de poulet", "Couscous BIO", "Navarin d'agneau", "Légumes couscous", "Céleris braisés"],
+      "laitiers": ["Fromage à la coupe", "Yaourt aux fruits BIO"],
+      "desserts": ["Fruit de saison", "Brookie patates douce / noix / pépites de chocolat"]
+    },
+    "2026-10-02": {
+      "entrees": ["Tomate BIO vinaigrette", "Salade de riz Harteloire"],
+      "plats": ["Bolognaise", "Pâtes BIO", "Côte de porc", "Tomate provençale"],
+      "laitiers": ["Fromage à la coupe", "Semoule au lait BIO"],
+      "desserts": ["Fruit de saison", "Liégeois pomme mangue", "Liégeois pomme framboise"]
     }
   }
 }
