@@ -209,21 +209,6 @@ def fetch_moyennes(client, key):
         print(f"[moyennes] impossible de récupérer les moyennes : {e}", file=sys.stderr)
         return
 
-    # Diagnostic temporaire (stderr uniquement, jamais écrit dans out/) : vérifier que
-    # Pronote fournit bien moyGenerale (moyenne générale déjà pondérée par les
-    # coefficients de matière) plutôt que de dépendre du repli non pondéré, et voir si
-    # un coefficient de matière apparaît sur chaque service (distinct du coefficient
-    # par note, déjà appliqué par Pronote dans moyEleve).
-    try:
-        raw = client.post("DernieresNotes", 198, {"Periode": {"N": period.id, "L": period.name}})
-        raw_data = raw["dataSec"]["data"]
-        print(f"[moyennes][diag] {key} : moyGenerale présent = {'moyGenerale' in raw_data}", file=sys.stderr)
-        services = raw_data.get("listeServices", {}).get("V", [])
-        if services:
-            print(f"[moyennes][diag] {key} : clés du 1er service = {sorted(services[0].keys())}", file=sys.stderr)
-    except Exception as e:
-        print(f"[moyennes][diag] {key} : échec diagnostic ({e})", file=sys.stderr)
-
     subjects = []
     for avg in averages:
         try:
@@ -242,12 +227,16 @@ def fetch_moyennes(client, key):
         except Exception as e:
             print(f"[moyennes] matière ignorée (erreur : {e})", file=sys.stderr)
 
+    # overall_average lit moyGenerale, la moyenne générale que Pronote calcule
+    # lui-même en pondérant chaque matière par son coefficient (configuré par
+    # l'établissement — normalement les coefficients du bac pour Loïse) ; on ne
+    # recalcule donc rien ici. Vérifié en direct sur les deux comptes : Pronote la
+    # fournit systématiquement, ce repli n'est donc a priori jamais utilisé — il ne
+    # reste que pour le cas où moyGenerale serait absente (établissement qui n'a pas
+    # configuré de coefficients), auquel cas la moyenne devient une simple moyenne
+    # non pondérée des matières, comme le fait pronotepy lui-même dans ce cas.
     overall = to_float(get_val(period, "overall_average", None))
     if overall is None and subjects:
-        # Repli : moyenne simple des moyennes par matière (les coefficients
-        # officiels du bac ne sont pas ré-appliqués ici, on fait confiance aux
-        # coefficients déjà configurés par l'établissement dans Pronote pour
-        # le calcul de la moyenne générale native).
         overall = round(sum(s["student"] for s in subjects) / len(subjects), 2)
 
     path = write_json(
