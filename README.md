@@ -131,19 +131,29 @@ Points importants :
 - Les enfants sont reconnus par leur prénom (« Sören »/« Loïse », sans tenir compte des
   accents) dans les noms Pronote de vos enfants rattachés au compte parent.
 
-## Calendrier hockey de Sören (SportEasy, automatique)
+## Calendrier hockey de Sören
 
-Le même script (et la même Action) récupère aussi le calendrier de l'équipe de Sören
-publié par SportEasy (un flux iCalendar en lecture seule, sans rapport avec Pronote —
-si le compte Pronote a un problème, cette section continue de se mettre à jour quand
-même). Les événements ponctuels (matchs, tournois, hors-glace exceptionnel, réunions
-d'équipe...) apparaissent directement dans le planning du jour concerné, en plus des
-créneaux hebdomadaires fixes déjà saisis dans `soren.json` — ils ne les remplacent pas.
+Deux sources s'ajoutent aux créneaux hebdomadaires fixes déjà saisis dans `soren.json`
+(elles ne les remplacent pas) et apparaissent directement dans le planning du jour
+concerné, avec une pastille 🏒 :
 
-Secret GitHub à créer (Settings → Secrets and variables → Actions) : `HOCKEY_ICS_URL_SOREN`,
-avec pour valeur le lien `webcal://...`/`https://...` du calendrier d'équipe (disponible
-depuis SportEasy : Calendrier → Exporter/S'abonner). Tant que ce secret n'existe pas, cette
-section est simplement ignorée sans bloquer le reste de l'Action.
+- **Entraînements/tournois/réunions** (`hockey-soren.json`, automatique) : le même
+  script Pronote (et la même Action) récupère aussi le calendrier d'équipe publié par
+  SportEasy (un flux iCalendar en lecture seule, sans rapport avec Pronote — si le
+  compte Pronote a un problème, cette section continue de se mettre à jour quand même).
+  Ce flux ne contient en revanche aucun vrai match de saison, seulement les
+  entraînements/hors-glace/tournois/réunions d'équipe.
+
+  Secret GitHub à créer (Settings → Secrets and variables → Actions) :
+  `HOCKEY_ICS_URL_SOREN`, avec pour valeur le lien `webcal://...`/`https://...` du
+  calendrier d'équipe (disponible depuis SportEasy : Calendrier → Exporter/S'abonner).
+  Tant que ce secret n'existe pas, cette section est simplement ignorée sans bloquer le
+  reste de l'Action.
+
+- **Matchs de la saison U13A** (`hockey-matchs-soren.json`, saisie manuelle) : les vrais
+  matchs (calendrier de ligue/fédération) ne sont publiés sur aucun flux automatisable
+  pour l'instant, donc transmettez-moi le calendrier de la saison (capture d'écran ou
+  texte) pour que je mette ce fichier à jour, comme pour le menu de la cantine.
 
 ## Menu de la cantine (saisie manuelle)
 
@@ -184,7 +194,8 @@ data/devoirs-*.json       Devoirs par enfant (généré par la GitHub Action, pa
 data/evaluations-*.json  Évaluations à venir par enfant (généré par la GitHub Action)
 data/moyennes-*.json     Moyennes par enfant (généré par la GitHub Action)
 data/notifications.json  Notifications du compte parent (généré par la GitHub Action)
-data/hockey-soren.json   Calendrier d'équipe SportEasy de Sören (généré par la GitHub Action)
+data/hockey-soren.json   Entraînements/tournois SportEasy de Sören (généré par la GitHub Action)
+data/hockey-matchs-soren.json  Matchs de la saison U13A de Sören (saisi manuellement)
 data/menu.json           Menu de la cantine par jour (saisi manuellement, pas la GitHub Action)
 manifest.json           Pour l'ajout à l'écran d'accueil
 OneSignalSDKWorker.js    Requis par OneSignal

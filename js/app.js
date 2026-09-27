@@ -23,7 +23,7 @@ async function loadData() {
     devoirsSoren, devoirsLoise,
     evaluationsSoren, evaluationsLoise,
     moyennesSoren, moyennesLoise,
-    notifications, menu, hockeySoren,
+    notifications, menu, hockeySoren, hockeyMatchsSoren,
   ] = await Promise.all([
     fetch('data/soren.json').then((r) => r.json()),
     fetch('data/loise.json').then((r) => r.json()),
@@ -37,13 +37,14 @@ async function loadData() {
     fetchJsonSafe('data/notifications.json'),
     fetchJsonSafe('data/menu.json'),
     fetchJsonSafe('data/hockey-soren.json'),
+    fetchJsonSafe('data/hockey-matchs-soren.json'),
   ]);
   state.data = {
     soren, loise, famille,
     devoirsSoren, devoirsLoise,
     evaluationsSoren, evaluationsLoise,
     moyennesSoren, moyennesLoise,
-    notifications, menu, hockeySoren,
+    notifications, menu, hockeySoren, hockeyMatchsSoren,
   };
 }
 
@@ -54,12 +55,17 @@ function initialSelectedDate() {
   return startOfDay(new Date());
 }
 
-/* Événements ponctuels du calendrier d'équipe SportEasy de Sören (matchs,
-   tournois, hors-glace exceptionnel...) : viennent s'ajouter aux créneaux
-   hebdomadaires fixes déjà saisis dans soren.json, ne les remplacent pas. */
+/* Événements ponctuels de hockey pour Sören : viennent s'ajouter aux créneaux
+   hebdomadaires fixes déjà saisis dans soren.json, ne les remplacent pas.
+   Deux sources fusionnées ici :
+   - hockey-soren.json : entraînements/tournois/réunions, synchronisés
+     automatiquement depuis le calendrier d'équipe SportEasy ;
+   - hockey-matchs-soren.json : les vrais matchs de la saison U13A (absents
+     du flux SportEasy), saisis à la main comme le menu de la cantine. */
 function hockeyEventsByDate(iso) {
-  const data = state.data.hockeySoren;
-  return (data && data.byDate && data.byDate[iso]) || [];
+  const auto = state.data.hockeySoren;
+  const matchs = state.data.hockeyMatchsSoren;
+  return [...((auto && auto.byDate && auto.byDate[iso]) || []), ...((matchs && matchs.byDate && matchs.byDate[iso]) || [])];
 }
 
 function slotsForDate(child, date, childKey) {
