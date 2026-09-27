@@ -27,11 +27,12 @@ jobs:
       - name: Installer les dépendances
         run: pip install -r scripts/requirements.txt
 
-      - name: Récupérer les devoirs depuis Pronote
+      - name: Récupérer les devoirs Pronote et le calendrier hockey
         env:
           PRONOTE_URL: ${{ secrets.PRONOTE_URL }}
           PRONOTE_USERNAME: ${{ secrets.PRONOTE_USERNAME }}
           PRONOTE_PASSWORD: ${{ secrets.PRONOTE_PASSWORD }}
+          HOCKEY_ICS_URL_SOREN: ${{ secrets.HOCKEY_ICS_URL_SOREN }}
         run: python scripts/fetch_devoirs.py
 
       - name: Déployer les devoirs en FTP

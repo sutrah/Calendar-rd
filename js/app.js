@@ -23,7 +23,7 @@ async function loadData() {
     devoirsSoren, devoirsLoise,
     evaluationsSoren, evaluationsLoise,
     moyennesSoren, moyennesLoise,
-    notifications, menu,
+    notifications, menu, hockeySoren,
   ] = await Promise.all([
     fetch('data/soren.json').then((r) => r.json()),
     fetch('data/loise.json').then((r) => r.json()),
@@ -36,13 +36,14 @@ async function loadData() {
     fetchJsonSafe('data/moyennes-loise.json'),
     fetchJsonSafe('data/notifications.json'),
     fetchJsonSafe('data/menu.json'),
+    fetchJsonSafe('data/hockey-soren.json'),
   ]);
   state.data = {
     soren, loise, famille,
     devoirsSoren, devoirsLoise,
     evaluationsSoren, evaluationsLoise,
     moyennesSoren, moyennesLoise,
-    notifications, menu,
+    notifications, menu, hockeySoren,
   };
 }
 
@@ -53,7 +54,15 @@ function initialSelectedDate() {
   return startOfDay(new Date());
 }
 
-function slotsForDate(child, date) {
+/* Événements ponctuels du calendrier d'équipe SportEasy de Sören (matchs,
+   tournois, hors-glace exceptionnel...) : viennent s'ajouter aux créneaux
+   hebdomadaires fixes déjà saisis dans soren.json, ne les remplacent pas. */
+function hockeyEventsByDate(iso) {
+  const data = state.data.hockeySoren;
+  return (data && data.byDate && data.byDate[iso]) || [];
+}
+
+function slotsForDate(child, date, childKey) {
   const iso = toISO(date);
   const dow = dayKey(date);
   const cancelIds = new Set(
@@ -68,7 +77,22 @@ function slotsForDate(child, date) {
   const additions = (child.exceptions || [])
     .filter((e) => e.date === iso && e.subject)
     .map((e) => ({ ...e, added: true }));
-  const all = [...base, ...additions];
+  const hockey =
+    childKey === 'soren'
+      ? hockeyEventsByDate(iso).map((h, i) => ({
+          id: `hockey-${iso}-${i}`,
+          start: h.start,
+          end: h.end,
+          // label/location viennent d'un flux tiers (SportEasy) : on échappe avant
+          // insertion dans le HTML, contrairement aux matières saisies à la main.
+          // added: false (et non true) — ce badge signifie "modifié via la page
+          // Modifier", ce qui n'a pas de sens pour un événement du club.
+          subject: `🏒 Hockey — ${escapeHtml(h.label)}`,
+          room: escapeHtml(h.location || ''),
+          added: false,
+        }))
+      : [];
+  const all = [...base, ...additions, ...hockey];
   all.sort((a, b) => a.start.localeCompare(b.start));
   return all;
 }
@@ -222,7 +246,7 @@ function renderWeekView(main, child, monday, numDays, childKey) {
       note.textContent = ferie ? `🎉 ${ferie.label}` : `🏖️ ${vacance.label}`;
       dayWrap.appendChild(note);
     } else {
-      const slots = slotsForDate(child, d);
+      const slots = slotsForDate(child, d, childKey);
       if (slots.length === 0) {
         const note = document.createElement('div');
         note.className = 'week-day-note muted';
@@ -287,7 +311,7 @@ function renderChildTab(main, child) {
       main.appendChild(b);
     }
 
-    const slots = slotsForDate(child, state.selectedDate);
+    const slots = slotsForDate(child, state.selectedDate, childKey);
     const list = document.createElement('div');
     list.className = 'agenda-list';
     if (slots.length === 0) {

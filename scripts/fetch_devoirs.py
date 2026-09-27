@@ -20,6 +20,10 @@ plutôt que de faire échouer tout le script.
 
 Le menu de cantine n'est PAS géré par ce script : la famille préfère le
 saisir à la main (data/menu.json), donc ce fichier n'est jamais touché ici.
+
+Récupère aussi le calendrier d'équipe de hockey de Sören (flux iCalendar
+public exporté par SportEasy, URL fournie via HOCKEY_ICS_URL_SOREN) — sans
+rapport avec Pronote, indépendant de la connexion à ce dernier.
 """
 
 import json
@@ -27,9 +31,13 @@ import os
 import re
 import sys
 import unicodedata
+import urllib.request
 from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pronotepy
+
+PARIS_TZ = ZoneInfo("Europe/Paris")
 
 OUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "out")
 DAYS_AHEAD = 14
@@ -246,6 +254,119 @@ def fetch_moyennes(client, key):
     print(f"Écrit {path} : moyenne générale {overall}, {len(subjects)} matière(s)")
 
 
+# --- Hockey de Sören (calendrier SportEasy de l'équipe, format iCalendar) -----
+#
+# N'a rien à voir avec Pronote : c'est un flux ICS public en lecture seule
+# (URL non devinable mais non authentifiée) exporté par SportEasy pour
+# l'équipe. On ne s'appuie sur aucune bibliothèque icalendar externe : le
+# format produit par SportEasy est simple (pas de règles de récurrence, pas
+# de fuseaux horaires personnalisés — tout est en UTC avec un "Z"), un petit
+# analyseur RFC 5545 minimal suffit. Ce flux liste des événements ponctuels
+# (matchs, tournois, hors-glace exceptionnel, réunions) qui s'ajoutent aux
+# créneaux hebdomadaires fixes déjà saisis à la main dans soren.json — il ne
+# les remplace pas.
+
+
+def unfold_ics_lines(text):
+    """Défait le "line folding" RFC 5545 : une ligne qui continue la
+    précédente commence par une espace ou une tabulation."""
+    lines = text.replace("\r\n", "\n").split("\n")
+    unfolded = []
+    for line in lines:
+        if line.startswith((" ", "\t")) and unfolded:
+            unfolded[-1] += line[1:]
+        else:
+            unfolded.append(line)
+    return unfolded
+
+
+def unescape_ics_value(value):
+    return (
+        value.replace("\\n", "\n")
+        .replace("\\N", "\n")
+        .replace("\\,", ",")
+        .replace("\\;", ";")
+        .replace("\\\\", "\\")
+    )
+
+
+def parse_ics_events(text):
+    events = []
+    current = None
+    for raw_line in unfold_ics_lines(text):
+        line = raw_line.strip()
+        if line == "BEGIN:VEVENT":
+            current = {}
+        elif line == "END:VEVENT":
+            if current is not None:
+                events.append(current)
+            current = None
+        elif current is not None and ":" in line:
+            key_part, value = line.split(":", 1)
+            key = key_part.split(";", 1)[0].upper()
+            current[key] = unescape_ics_value(value)
+    return events
+
+
+def parse_ics_datetime(value):
+    value = value.strip()
+    if value.endswith("Z"):
+        dt = datetime.strptime(value, "%Y%m%dT%H%M%SZ").replace(tzinfo=ZoneInfo("UTC"))
+    elif "T" in value:
+        # Pas de "Z" ni de TZID : on suppose une heure déjà locale (Europe/Paris).
+        dt = datetime.strptime(value, "%Y%m%dT%H%M%S").replace(tzinfo=PARIS_TZ)
+    else:
+        dt = datetime.strptime(value, "%Y%m%d").replace(tzinfo=PARIS_TZ)
+    return dt.astimezone(PARIS_TZ)
+
+
+def fetch_hockey_soren():
+    url = os.environ.get("HOCKEY_ICS_URL_SOREN")
+    if not url:
+        print("[hockey] HOCKEY_ICS_URL_SOREN absent, section ignorée", file=sys.stderr)
+        return
+
+    try:
+        with urllib.request.urlopen(url.replace("webcal://", "https://", 1), timeout=30) as resp:
+            text = resp.read().decode("utf-8", errors="replace")
+    except Exception as e:
+        print(f"[hockey] impossible de récupérer le calendrier SportEasy : {e}", file=sys.stderr)
+        return
+
+    today = date.today()
+    by_date = {}
+    for ev in parse_ics_events(text):
+        try:
+            dtstart = ev.get("DTSTART")
+            if not dtstart:
+                continue
+            start = parse_ics_datetime(dtstart)
+            if start.date() < today:
+                continue
+            dtend = ev.get("DTEND")
+            end = parse_ics_datetime(dtend) if dtend else None
+            # Le résumé SportEasy est "<Nom d'équipe> - <type d'événement>" :
+            # on ne garde que le type (ex. "Practice", "Tournoi").
+            summary = ev.get("SUMMARY", "").split(" - ", 1)
+            label = (summary[1] if len(summary) > 1 else summary[0]).strip()
+            by_date.setdefault(start.date().isoformat(), []).append(
+                {
+                    "label": label,
+                    "start": start.strftime("%H:%M"),
+                    "end": end.strftime("%H:%M") if end else "",
+                    "location": (ev.get("LOCATION") or "").strip(),
+                }
+            )
+        except Exception as e:
+            print(f"[hockey] événement ignoré (erreur : {e})", file=sys.stderr)
+
+    for items in by_date.values():
+        items.sort(key=lambda i: i["start"])
+    path = write_json("hockey-soren.json", {"updatedAt": today.isoformat(), "byDate": by_date})
+    total = sum(len(v) for v in by_date.values())
+    print(f"Écrit {path} : {total} événement(s) sur {len(by_date)} date(s)")
+
+
 # --- Notifications (informations, actualités, sécurité...) -------------------
 
 def fetch_notifications(login_fn):
@@ -338,6 +459,11 @@ def main():
         fetch_notifications(login)
     except Exception as e:
         print(f"[notifications] section entière ignorée (erreur : {e})", file=sys.stderr)
+
+    try:
+        fetch_hockey_soren()
+    except Exception as e:
+        print(f"[hockey] section entière ignorée (erreur : {e})", file=sys.stderr)
 
     try:
         found = list_child_keys()

@@ -131,6 +131,20 @@ Points importants :
 - Les enfants sont reconnus par leur prénom (« Sören »/« Loïse », sans tenir compte des
   accents) dans les noms Pronote de vos enfants rattachés au compte parent.
 
+## Calendrier hockey de Sören (SportEasy, automatique)
+
+Le même script (et la même Action) récupère aussi le calendrier de l'équipe de Sören
+publié par SportEasy (un flux iCalendar en lecture seule, sans rapport avec Pronote —
+si le compte Pronote a un problème, cette section continue de se mettre à jour quand
+même). Les événements ponctuels (matchs, tournois, hors-glace exceptionnel, réunions
+d'équipe...) apparaissent directement dans le planning du jour concerné, en plus des
+créneaux hebdomadaires fixes déjà saisis dans `soren.json` — ils ne les remplacent pas.
+
+Secret GitHub à créer (Settings → Secrets and variables → Actions) : `HOCKEY_ICS_URL_SOREN`,
+avec pour valeur le lien `webcal://...`/`https://...` du calendrier d'équipe (disponible
+depuis SportEasy : Calendrier → Exporter/S'abonner). Tant que ce secret n'existe pas, cette
+section est simplement ignorée sans bloquer le reste de l'Action.
+
 ## Menu de la cantine (saisie manuelle)
 
 Contrairement au reste, le menu **n'est pas récupéré automatiquement** : la famille
@@ -170,6 +184,7 @@ data/devoirs-*.json       Devoirs par enfant (généré par la GitHub Action, pa
 data/evaluations-*.json  Évaluations à venir par enfant (généré par la GitHub Action)
 data/moyennes-*.json     Moyennes par enfant (généré par la GitHub Action)
 data/notifications.json  Notifications du compte parent (généré par la GitHub Action)
+data/hockey-soren.json   Calendrier d'équipe SportEasy de Sören (généré par la GitHub Action)
 data/menu.json           Menu de la cantine par jour (saisi manuellement, pas la GitHub Action)
 manifest.json           Pour l'ajout à l'écran d'accueil
 OneSignalSDKWorker.js    Requis par OneSignal
