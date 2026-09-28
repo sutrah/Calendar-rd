@@ -50,8 +50,33 @@ async function initPush() {
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   await loadOneSignalSdk();
 
+  // OneSignal se souvient de l'état voulu côté serveur (optOut), mais la permission
+  // navigateur reste "autorisée" une fois accordée (impossible à révoquer en JS) : le SDK
+  // a tendance à réabonner tout seul au rechargement de la page tant que cette permission
+  // est là, en ignorant l'optOut précédent. On garde donc notre propre trace du dernier
+  // choix explicite pour la réimposer juste après l'init si besoin.
+  function getWantedOptOut() {
+    try {
+      return localStorage.getItem('push_opted_out') === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+  function setWantedOptOut(value) {
+    try {
+      if (value) localStorage.setItem('push_opted_out', '1');
+      else localStorage.removeItem('push_opted_out');
+    } catch (e) {
+      /* stockage indisponible : tant pis, pas de persistance entre rechargements */
+    }
+  }
+
   OneSignalDeferred.push(async (OneSignal) => {
     await OneSignal.init({ appId: ONESIGNAL_APP_ID, allowLocalhostAsSecureOrigin: true });
+
+    if (getWantedOptOut() && OneSignal.User.PushSubscription.optedIn) {
+      await OneSignal.User.PushSubscription.optOut();
+    }
 
     const refreshBtnState = async () => {
       const optedIn = OneSignal.User.PushSubscription.optedIn;
@@ -70,7 +95,9 @@ async function initPush() {
     btn.addEventListener('click', async () => {
       if (OneSignal.User.PushSubscription.optedIn) {
         await OneSignal.User.PushSubscription.optOut();
+        setWantedOptOut(true);
       } else {
+        setWantedOptOut(false);
         await OneSignal.Notifications.requestPermission();
         await OneSignal.User.PushSubscription.optIn();
         // Par défaut, un nouvel abonné reçoit les alertes des deux enfants —
