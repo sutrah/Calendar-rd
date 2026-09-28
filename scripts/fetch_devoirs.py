@@ -221,6 +221,55 @@ def fetch_evaluations(client, key):
     print(f"Écrit {path} : {total} évaluation(s) sur {len(by_date)} date(s)")
 
 
+# --- Emploi du temps réel (source de vérité : Pronote, jamais le fichier saisi à la main) -
+#
+# soren.json/loise.json restent la référence pour ce que Pronote ne connaît pas du tout
+# (CHA, hockey, taekwondo, muay thai — marqués "pronote": false dans ces fichiers) et pour
+# les dates hors de la fenêtre récupérée ici (trop loin devant). Mais pour tout ce que
+# Pronote couvre (les DAYS_AHEAD prochains jours), ce fichier-ci fait foi : le site
+# l'utilise à la place de l'emploi du temps saisi à la main, silencieusement — plus besoin
+# de comparer à la main à chaque fois que Pronote change quelque chose (matière, salle,
+# horaire...). Chaque date de la fenêtre reçoit une clé même sans cours (liste vide), pour
+# distinguer "Pronote dit qu'il n'y a rien ce jour-là" de "date hors de la fenêtre connue".
+
+def fetch_lessons(client, key):
+    today = date.today()
+    try:
+        pairs = raw_lessons(client, today, today + timedelta(days=DAYS_AHEAD))
+    except Exception as e:
+        print(f"[emploi du temps] impossible de récupérer les cours : {e}", file=sys.stderr)
+        return
+
+    by_date = {(today + timedelta(days=i)).isoformat(): [] for i in range(DAYS_AHEAD + 1)}
+    for lesson, raw in pairs:
+        try:
+            d = get_val(lesson, "start", None)
+            if d is None:
+                continue
+            iso = d.date().isoformat()
+            if iso not in by_date:
+                continue
+            subject = get_val(lesson, "subject", None)
+            subject_name = get_val(subject, "name", "") if subject else ""
+            end = get_val(lesson, "end", None)
+            by_date[iso].append(
+                {
+                    "subject": subject_name,
+                    "teacher": get_val(lesson, "teacher_name", "") or "",
+                    "room": get_val(lesson, "classroom", "") or "",
+                    "start": d.strftime("%H:%M"),
+                    "end": end.strftime("%H:%M") if end else "",
+                }
+            )
+        except Exception as e:
+            print(f"[emploi du temps] cours ignoré (erreur : {e})", file=sys.stderr)
+    for items in by_date.values():
+        items.sort(key=lambda i: i["start"])
+    path = write_json(f"lessons-{key}.json", {"updatedAt": today.isoformat(), "byDate": by_date})
+    total = sum(len(v) for v in by_date.values())
+    print(f"Écrit {path} : {total} cours sur {len(by_date)} jour(s)")
+
+
 # --- Alertes emploi du temps (prof absent, cours annulé, cours modifié, salle) --
 #
 # Confirmé en direct sur le compte de la famille : Pronote fournit déjà, sur
@@ -653,6 +702,7 @@ def main():
         for fn, label in (
             (fetch_devoirs, "devoirs"),
             (fetch_evaluations, "évaluations"),
+            (fetch_lessons, "emploi du temps"),
             (fetch_alerts, "alertes"),
             (fetch_moyennes, "moyennes"),
         ):

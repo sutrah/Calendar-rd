@@ -42,17 +42,17 @@
     { "id": "so-ve-5", "day": "vendredi", "start": "14:00", "end": "15:00", "subject": "Français", "teacher": "Le Tyrant-Soty A.", "room": "107" },
     { "id": "so-ve-q1-6", "day": "vendredi", "start": "15:00", "end": "16:00", "subject": "Technologie", "teacher": "Delage J.", "room": "Techno 2 (17 PC)", "week": "Q1" },
 
-    { "id": "so-cha-lu", "day": "lundi", "start": "12:30", "end": "13:30", "subject": "Classe Horaire Aménagé (CHA)", "teacher": "", "room": "", "from": "2026-09-24" },
-    { "id": "so-cha-je", "day": "jeudi", "start": "12:30", "end": "13:30", "subject": "Classe Horaire Aménagé (CHA)", "teacher": "", "room": "", "from": "2026-09-24" },
-    { "id": "so-cha-ma", "day": "mardi", "start": "16:15", "end": "17:30", "subject": "Classe Horaire Aménagé (CHA)", "teacher": "", "room": "", "from": "2026-09-24" },
-    { "id": "so-cha-ve", "day": "vendredi", "start": "16:15", "end": "17:30", "subject": "Classe Horaire Aménagé (CHA)", "teacher": "", "room": "", "from": "2026-09-24" },
+    { "id": "so-cha-lu", "day": "lundi", "start": "12:30", "end": "13:30", "subject": "Classe Horaire Aménagé (CHA)", "teacher": "", "room": "", "from": "2026-09-24", "pronote": false },
+    { "id": "so-cha-je", "day": "jeudi", "start": "12:30", "end": "13:30", "subject": "Classe Horaire Aménagé (CHA)", "teacher": "", "room": "", "from": "2026-09-24", "pronote": false },
+    { "id": "so-cha-ma", "day": "mardi", "start": "16:15", "end": "17:30", "subject": "Classe Horaire Aménagé (CHA)", "teacher": "", "room": "", "from": "2026-09-24", "pronote": false },
+    { "id": "so-cha-ve", "day": "vendredi", "start": "16:15", "end": "17:30", "subject": "Classe Horaire Aménagé (CHA)", "teacher": "", "room": "", "from": "2026-09-24", "pronote": false },
 
-    { "id": "so-hoc-glace-ma", "day": "mardi", "start": "18:20", "end": "19:20", "subject": "Hockey - entraînement (glace)", "teacher": "", "room": "", "from": "2026-09-07" },
-    { "id": "so-hoc-glace-je", "day": "jeudi", "start": "18:20", "end": "19:20", "subject": "Hockey - entraînement (glace)", "teacher": "", "room": "", "from": "2026-09-07" },
-    { "id": "so-hoc-glace-ve", "day": "vendredi", "start": "18:20", "end": "19:20", "subject": "Hockey - entraînement (glace)", "teacher": "", "room": "", "from": "2026-09-07" },
-    { "id": "so-hoc-horsglace-ma", "day": "mardi", "start": "19:30", "end": "20:00", "subject": "Hockey - hors glace", "teacher": "", "room": "", "from": "2026-09-07" },
-    { "id": "so-hoc-horsglace-je", "day": "jeudi", "start": "19:30", "end": "20:00", "subject": "Hockey - hors glace", "teacher": "", "room": "", "from": "2026-09-07" },
-    { "id": "so-hoc-horsglace-ve", "day": "vendredi", "start": "19:30", "end": "20:00", "subject": "Hockey - hors glace", "teacher": "", "room": "", "from": "2026-09-07" }
+    { "id": "so-hoc-glace-ma", "day": "mardi", "start": "18:20", "end": "19:20", "subject": "Hockey - entraînement (glace)", "teacher": "", "room": "", "from": "2026-09-07", "pronote": false },
+    { "id": "so-hoc-glace-je", "day": "jeudi", "start": "18:20", "end": "19:20", "subject": "Hockey - entraînement (glace)", "teacher": "", "room": "", "from": "2026-09-07", "pronote": false },
+    { "id": "so-hoc-glace-ve", "day": "vendredi", "start": "18:20", "end": "19:20", "subject": "Hockey - entraînement (glace)", "teacher": "", "room": "", "from": "2026-09-07", "pronote": false },
+    { "id": "so-hoc-horsglace-ma", "day": "mardi", "start": "19:30", "end": "20:00", "subject": "Hockey - hors glace", "teacher": "", "room": "", "from": "2026-09-07", "pronote": false },
+    { "id": "so-hoc-horsglace-je", "day": "jeudi", "start": "19:30", "end": "20:00", "subject": "Hockey - hors glace", "teacher": "", "room": "", "from": "2026-09-07", "pronote": false },
+    { "id": "so-hoc-horsglace-ve", "day": "vendredi", "start": "19:30", "end": "20:00", "subject": "Hockey - hors glace", "teacher": "", "room": "", "from": "2026-09-07", "pronote": false }
   ],
   "exceptions": []
 }

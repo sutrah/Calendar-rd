@@ -24,7 +24,7 @@ async function loadData() {
     evaluationsSoren, evaluationsLoise,
     moyennesSoren, moyennesLoise,
     notifications, menu, hockeySoren, hockeyMatchsSoren,
-    alertsSoren, alertsLoise,
+    alertsSoren, alertsLoise, lessonsSoren, lessonsLoise,
   ] = await Promise.all([
     fetch('data/soren.json').then((r) => r.json()),
     fetch('data/loise.json').then((r) => r.json()),
@@ -41,6 +41,8 @@ async function loadData() {
     fetchJsonSafe('data/hockey-matchs-soren.json'),
     fetchJsonSafe('data/alerts-soren.json'),
     fetchJsonSafe('data/alerts-loise.json'),
+    fetchJsonSafe('data/lessons-soren.json'),
+    fetchJsonSafe('data/lessons-loise.json'),
   ]);
   state.data = {
     soren, loise, famille,
@@ -48,7 +50,7 @@ async function loadData() {
     evaluationsSoren, evaluationsLoise,
     moyennesSoren, moyennesLoise,
     notifications, menu, hockeySoren, hockeyMatchsSoren,
-    alertsSoren, alertsLoise,
+    alertsSoren, alertsLoise, lessonsSoren, lessonsLoise,
   };
 }
 
@@ -72,18 +74,59 @@ function hockeyEventsByDate(iso) {
   return [...((auto && auto.byDate && auto.byDate[iso]) || []), ...((matchs && matchs.byDate && matchs.byDate[iso]) || [])];
 }
 
+/* Emploi du temps académique tel que Pronote le connaît vraiment, pour les dates que
+   la GitHub Action a pu récupérer (les DAYS_AHEAD prochains jours côté script) — Pronote
+   fait foi, on ne compare/corrige plus à la main. `undefined` = date hors de cette
+   fenêtre (retomber sur le modèle récurrent saisi à la main) ; un tableau (même vide) =
+   Pronote a répondu pour cette date précise, à utiliser tel quel. */
+function lessonsFromPronote(childKey, iso) {
+  const data = childKey === 'soren' ? state.data.lessonsSoren : state.data.lessonsLoise;
+  if (!data || !data.byDate) return undefined;
+  return data.byDate[iso];
+}
+
 function slotsForDate(child, date, childKey) {
   const iso = toISO(date);
   const dow = dayKey(date);
+  const parity = weekParity(date);
+  const live = childKey && lessonsFromPronote(childKey, iso);
   const cancelIds = new Set(
     (child.exceptions || []).filter((e) => e.date === iso && e.cancel).map((e) => e.cancel)
   );
-  const parity = weekParity(date);
-  const base = (child.slots || [])
+
+  // Ce que Pronote ne suit pas du tout (CHA, hockey, taekwondo, muay thai — marqués
+  // "pronote": false) reste toujours issu du modèle récurrent, même les jours couverts
+  // par les vraies données Pronote, puisque celles-ci n'en parlent jamais.
+  const extracurricular = (child.slots || [])
+    .filter((s) => s.pronote === false)
     .filter((s) => s.day === dow && !cancelIds.has(s.id))
     .filter((s) => (!s.from || iso >= s.from) && (!s.until || iso <= s.until))
     .filter((s) => !s.week || s.week === parity)
     .map((s) => ({ ...s, added: false }));
+
+  const base = live
+    ? [
+        ...live.map((l, i) => ({
+          id: `pronote-${iso}-${i}`,
+          start: l.start,
+          end: l.end,
+          subject: l.subject,
+          teacher: l.teacher,
+          room: l.room,
+          added: false,
+        })),
+        ...extracurricular,
+      ]
+    : [
+        ...(child.slots || [])
+          .filter((s) => s.pronote !== false)
+          .filter((s) => s.day === dow && !cancelIds.has(s.id))
+          .filter((s) => (!s.from || iso >= s.from) && (!s.until || iso <= s.until))
+          .filter((s) => !s.week || s.week === parity)
+          .map((s) => ({ ...s, added: false })),
+        ...extracurricular,
+      ];
+
   const additions = (child.exceptions || [])
     .filter((e) => e.date === iso && e.subject)
     .map((e) => ({ ...e, added: true }));

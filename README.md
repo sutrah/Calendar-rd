@@ -64,6 +64,11 @@ Deux types de modifications sont possibles :
 - **Exceptions ponctuelles** : pour une date précise uniquement — annuler un cours
   (ex. absence prof) ou ajouter un événement ponctuel (ex. sortie scolaire).
 
+⚠️ Pour les cours (pas les activités type hockey/taekwondo), ces modifications ne sont
+utiles que pour les dates **au-delà** de ce que Pronote a déjà couvert (voir « Emploi du
+temps réel » plus bas) : sur les prochains jours, c'est Pronote qui fait foi, une
+modification ici n'y changerait rien.
+
 Les jours fériés et vacances scolaires sont gérés automatiquement (voir plus bas) : pas
 besoin de les ajouter à la main.
 
@@ -110,6 +115,14 @@ Une GitHub Action tourne 5 fois par jour (12h, 15h, 16h, 17h et 19h heure de Par
 d'été/hiver dans `.github/workflows/devoirs.yml` si besoin), se connecte à Pronote avec
 votre compte parent, et dépose directement en FTP dans `data/` :
 
+- **Emploi du temps réel** (`lessons-soren.json` / `lessons-loise.json`) : pour les
+  prochains jours (fenêtre de récupération de l'Action), **Pronote fait foi** — le
+  planning affiché vient directement de ce que Pronote dit, silencieusement, pas du
+  fichier saisi à la main. Fini les allers-retours à chaque fois que Pronote change une
+  matière, une salle ou un horaire : la mise à jour se fait toute seule. `soren.json` /
+  `loise.json` restent la référence uniquement pour les dates plus lointaines (hors
+  fenêtre) et pour tout ce que Pronote ne suit pas du tout (CHA, hockey, taekwondo, muay
+  thai — marqués `"pronote": false` dans ces fichiers), qui s'affichent dans tous les cas.
 - **Devoirs** (`devoirs-soren.json` / `devoirs-loise.json`) : affichés sous le planning du
   jour (**vue Jour uniquement**, pas la vue Semaine), pour le jour suivant celui affiché.
   Chaque devoir a une case à cocher pour le marquer fait (avec un petit effet visuel).
@@ -218,6 +231,7 @@ data/loise.json        Emploi du temps de Loïse
 data/family.json       Événements famille
 data/devoirs-*.json       Devoirs par enfant (généré par la GitHub Action, pas à éditer)
 data/evaluations-*.json  Évaluations à venir par enfant (généré par la GitHub Action)
+data/lessons-*.json     Emploi du temps réel par enfant, fait foi (généré par la GitHub Action)
 data/alerts-*.json      Prof absent/cours annulé/modifié/salle par enfant (généré par la GitHub Action)
 data/alerts-notified-*.json  Suivi des alertes déjà poussées en notification (généré, interne)
 data/moyennes-*.json     Moyennes par enfant (généré par la GitHub Action)
