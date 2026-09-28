@@ -72,10 +72,11 @@ modification ici n'y changerait rien.
 Les jours fériés et vacances scolaires sont gérés automatiquement (voir plus bas) : pas
 besoin de les ajouter à la main.
 
-## Notifications push (bouton 🔔)
+## Notifications push (boutons 🔔 Sören / 🔔 Loïse)
 
-Le bouton 🔔 permet à chacun des 4 membres de la famille de s'abonner aux notifications
-via un service gratuit, **OneSignal**. Deux sources de notifications :
+Deux boutons dans l'en-tête, un par enfant, permettent à chacun des membres de la
+famille de s'abonner uniquement aux alertes qui le concernent, via un service gratuit,
+**OneSignal**. Deux sources de notifications :
 
 1. **Manuelle** : vous envoyez une notification vous-même (2 clics) quand besoin (ex.
    « Sortie scolaire de Loïse demain, penser au pique-nique ») depuis le dashboard
@@ -85,10 +86,11 @@ via un service gratuit, **OneSignal**. Deux sources de notifications :
    annulé/modifié, changement de salle) pour **aujourd'hui ou demain** — voir « Alertes
    emploi du temps » ci-dessous.
 
-Après s'être abonné, chacun peut choisir via deux cases à cocher (« Alertes de : Sören /
-Loïse », affichées sous le bouton 🔔 une fois abonné) quel(s) enfant(s) le concernent —
-les deux sont cochées par défaut. Loïse ou Sören peuvent donc, sur leur propre téléphone,
-ne garder que leurs propres alertes ; les parents gardent tout par défaut.
+Cliquer sur **🔔 Sören** active (en demandant l'autorisation navigateur si besoin) ou
+désactive uniquement les alertes de Sören ; **🔔 Loïse** fait de même pour Loïse,
+indépendamment. Le bouton reste vert tant que l'alerte correspondante est active.
+Chaque membre de la famille peut donc activer une seule cloche, les deux, ou aucune,
+selon ce qu'il veut recevoir sur son propre téléphone — pas de case à cocher séparée.
 
 Configuration (à faire une seule fois) :
 
@@ -103,7 +105,11 @@ Configuration (à faire une seule fois) :
    valeur ne s'affiche qu'une seule fois à la création).
 4. Créez le secret GitHub `ONESIGNAL_REST_API_KEY` (Settings → Secrets and variables →
    Actions) avec cette clé — jamais dans le code, l'avertissement d'OneSignal le rappelle.
-5. Chaque membre de la famille ouvre le site et clique sur 🔔 pour s'abonner.
+5. (Optionnel) Pour recevoir un message de confirmation dès qu'on s'abonne pour la
+   première fois, activez la « Welcome Notification » dans le dashboard OneSignal
+   (Settings → Push & In-App → Web platform → ⚙ Settings).
+6. Chaque membre de la famille ouvre le site et clique sur 🔔 Sören et/ou 🔔 Loïse pour
+   s'abonner aux alertes voulues.
 
 ⚠️ Sur iPhone/iPad, Safari exige que le site soit ajouté à l'écran d'accueil (voir
 « Mise en ligne » ci-dessus) avant que les notifications fonctionnent (iOS 16.4+).

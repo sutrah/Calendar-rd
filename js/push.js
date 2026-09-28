@@ -4,15 +4,20 @@
  * 1. Créez un compte gratuit sur https://onesignal.com puis une app "Web Push".
  * 2. Renseignez l'URL de votre site (celle où vous faites l'upload FTP).
  * 3. Copiez votre "OneSignal App ID" et collez-le ci-dessous à la place de PLACEHOLDER.
- * 4. Ré-uploadez ce fichier (js/push.js) en FTP. C'est tout : le bouton 🔔 du site
- *    permettra à chaque membre de la famille de s'abonner depuis son téléphone.
- * 5. Pour envoyer une notification : dashboard OneSignal > Messages > New Push.
+ * 4. Ré-uploadez ce fichier (js/push.js) en FTP. C'est tout : les boutons 🔔 Sören /
+ *    🔔 Loïse du site permettent à chacun de s'abonner aux alertes qui le concernent.
+ * 5. Pour envoyer une notification manuelle : dashboard OneSignal > Messages > New Push.
  *
  * Sur iPhone/iPad : Safari exige que le site soit ajouté à l'écran d'accueil
  * (bouton Partager > "Sur l'écran d'accueil") avant que les notifications marchent (iOS 16.4+).
  */
 
 const ONESIGNAL_APP_ID = '41619346-065e-4c78-9b6b-cf8c3e5bc639';
+
+const PUSH_CHILDREN = [
+  { key: 'soren', btnId: 'bellSoren', tag: 'alert_soren' },
+  { key: 'loise', btnId: 'bellLoise', tag: 'alert_loise' },
+];
 
 function pushConfigured() {
   return ONESIGNAL_APP_ID && !ONESIGNAL_APP_ID.startsWith('PLACEHOLDER');
@@ -29,20 +34,21 @@ function loadOneSignalSdk() {
 }
 
 async function initPush() {
-  const btn = document.getElementById('subscribeBtn');
-  const prefs = document.getElementById('pushPrefs');
-  const prefSoren = document.getElementById('prefSoren');
-  const prefLoise = document.getElementById('prefLoise');
-  if (!btn) return;
+  const children = PUSH_CHILDREN
+    .map((c) => ({ ...c, btn: document.getElementById(c.btnId) }))
+    .filter((c) => c.btn);
+  if (!children.length) return;
 
   if (!pushConfigured()) {
-    btn.title = "Notifications non configurées (voir js/push.js)";
-    btn.addEventListener('click', () => {
-      alert(
-        "Les notifications ne sont pas encore configurées.\n\n" +
-        "Ouvrez js/push.js, créez un compte gratuit sur onesignal.com, " +
-        "remplacez PLACEHOLDER_ONESIGNAL_APP_ID par votre App ID, puis ré-uploadez le fichier en FTP."
-      );
+    children.forEach((c) => {
+      c.btn.title = "Notifications non configurées (voir js/push.js)";
+      c.btn.addEventListener('click', () => {
+        alert(
+          "Les notifications ne sont pas encore configurées.\n\n" +
+          "Ouvrez js/push.js, créez un compte gratuit sur onesignal.com, " +
+          "remplacez PLACEHOLDER_ONESIGNAL_APP_ID par votre App ID, puis ré-uploadez le fichier en FTP."
+        );
+      });
     });
     return;
   }
@@ -50,92 +56,49 @@ async function initPush() {
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   await loadOneSignalSdk();
 
-  // OneSignal se souvient de l'état voulu côté serveur (optOut), mais la permission
-  // navigateur reste "autorisée" une fois accordée (impossible à révoquer en JS) : le SDK
-  // a tendance à réabonner tout seul au rechargement de la page tant que cette permission
-  // est là, en ignorant l'optOut précédent. On garde donc notre propre trace du dernier
-  // choix explicite pour la réimposer juste après l'init si besoin.
-  function getWantedOptOut() {
-    try {
-      return localStorage.getItem('push_opted_out') === '1';
-    } catch (e) {
-      return false;
-    }
-  }
-  function setWantedOptOut(value) {
-    try {
-      if (value) localStorage.setItem('push_opted_out', '1');
-      else localStorage.removeItem('push_opted_out');
-    } catch (e) {
-      /* stockage indisponible : tant pis, pas de persistance entre rechargements */
-    }
-  }
-
   OneSignalDeferred.push(async (OneSignal) => {
     await OneSignal.init({ appId: ONESIGNAL_APP_ID, allowLocalhostAsSecureOrigin: true });
 
-    if (getWantedOptOut() && OneSignal.User.PushSubscription.optedIn) {
-      await OneSignal.User.PushSubscription.optOut();
-    }
-
+    // Chaque cloche ne fait que activer/désactiver le tag de l'enfant concerné : on ne
+    // désabonne jamais complètement l'appareil (optOut), pour ne pas couper les alertes
+    // de l'autre enfant si les deux cloches ont été activées séparément.
     const refreshBtnState = async () => {
       const optedIn = OneSignal.User.PushSubscription.optedIn;
-      btn.classList.toggle('subscribed', !!optedIn);
-      btn.title = optedIn ? 'Notifications activées' : 'Activer les notifications';
-      if (prefs) prefs.hidden = !optedIn;
-      if (optedIn && prefSoren && prefLoise) {
-        const tags = await OneSignal.User.getTags();
-        prefSoren.checked = tags.alert_soren !== 'false';
-        prefLoise.checked = tags.alert_loise !== 'false';
-      }
+      const tags = optedIn ? await OneSignal.User.getTags() : {};
+      children.forEach((c) => {
+        const on = !!optedIn && tags[c.tag] === 'true';
+        c.btn.classList.toggle('subscribed', on);
+        c.btn.title = on
+          ? `Alertes de ${c.btn.textContent.replace('🔔', '').trim()} activées`
+          : `Recevoir les alertes de ${c.btn.textContent.replace('🔔', '').trim()}`;
+      });
     };
     refreshBtnState();
     OneSignal.User.PushSubscription.addEventListener('change', refreshBtnState);
 
-    btn.addEventListener('click', async () => {
-      // On se base sur l'état affiché du bouton (qu'on maîtrise entièrement via
-      // refreshBtnState, y compris la correction forcée ci-dessus), pas sur une
-      // relecture immédiate de OneSignal.User.PushSubscription.optedIn : ce dernier
-      // peut rester momentanément périmé juste après un optOut()/optIn(), ce qui
-      // faisait qu'un clic pour activer était parfois interprété comme "désactiver"
-      // et n'avait visiblement aucun effet.
-      const isCurrentlySubscribed = btn.classList.contains('subscribed');
-      if (isCurrentlySubscribed) {
-        await OneSignal.User.PushSubscription.optOut();
-        setWantedOptOut(true);
-      } else {
-        setWantedOptOut(false);
-        await OneSignal.Notifications.requestPermission();
-        if (Notification.permission === 'denied') {
-          alert(
-            "Les notifications sont bloquées pour ce site dans les réglages de votre " +
-            "navigateur. Impossible de les réactiver depuis cette page : ouvrez les " +
-            "réglages du site (icône 🔒/ⓘ à côté de l'adresse) et autorisez les " +
-            "notifications, puis réessayez."
-          );
-          setWantedOptOut(true);
-          refreshBtnState();
-          return;
+    children.forEach((c) => {
+      c.btn.addEventListener('click', async () => {
+        const isOn = c.btn.classList.contains('subscribed');
+        if (isOn) {
+          await OneSignal.User.addTag(c.tag, 'false');
+        } else {
+          if (!OneSignal.User.PushSubscription.optedIn) {
+            await OneSignal.Notifications.requestPermission();
+            if (Notification.permission === 'denied') {
+              alert(
+                "Les notifications sont bloquées pour ce site dans les réglages de votre " +
+                "navigateur. Impossible de les activer depuis cette page : ouvrez les " +
+                "réglages du site (icône 🔒/ⓘ à côté de l'adresse) et autorisez les " +
+                "notifications, puis réessayez."
+              );
+              return;
+            }
+            await OneSignal.User.PushSubscription.optIn();
+          }
+          await OneSignal.User.addTag(c.tag, 'true');
         }
-        await OneSignal.User.PushSubscription.optIn();
-        // Par défaut, un nouvel abonné reçoit les alertes des deux enfants —
-        // il peut ensuite décocher celles qui ne le concernent pas ci-dessous.
-        const tags = await OneSignal.User.getTags();
-        if (tags.alert_soren === undefined) await OneSignal.User.addTag('alert_soren', 'true');
-        if (tags.alert_loise === undefined) await OneSignal.User.addTag('alert_loise', 'true');
-      }
-      refreshBtnState();
+        refreshBtnState();
+      });
     });
-
-    if (prefSoren) {
-      prefSoren.addEventListener('change', () => {
-        OneSignal.User.addTag('alert_soren', prefSoren.checked ? 'true' : 'false');
-      });
-    }
-    if (prefLoise) {
-      prefLoise.addEventListener('change', () => {
-        OneSignal.User.addTag('alert_loise', prefLoise.checked ? 'true' : 'false');
-      });
-    }
   });
 }

@@ -81,30 +81,24 @@ header.topbar {
 .icon-btn:active { transform: scale(0.94); }
 .icon-btn.subscribed { background: #dcfce7; color: #16a34a; }
 
-.push-prefs {
+.bell-group {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  font-size: 12.5px;
-  color: var(--text-muted);
-  padding-bottom: 8px;
+  gap: 6px;
 }
 
-/* Sans ça, "display: flex" ci-dessus l'emporte sur la règle par défaut du navigateur
-   pour [hidden] (même spécificité, mais déclarée par le site) : la case ne se
-   cachait donc jamais vraiment après un clic sur 🔔 pour se désabonner. */
-.push-prefs[hidden] {
-  display: none;
-}
-
-.push-prefs label {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--text);
+.bell-btn {
+  border: none;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
 }
+.bell-btn:active { transform: scale(0.96); }
+.bell-btn.subscribed { background: #dcfce7; color: #16a34a; }
 
 nav.tabs {
   display: flex;

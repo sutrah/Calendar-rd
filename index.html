@@ -18,12 +18,10 @@
 <header class="topbar">
   <div class="topbar-row">
     <h1>📅 Calendrier famille</h1>
-    <button id="subscribeBtn" class="icon-btn" title="Activer les notifications">🔔</button>
-  </div>
-  <div id="pushPrefs" class="push-prefs" hidden>
-    <span>Alertes de :</span>
-    <label><input type="checkbox" id="prefSoren" checked /> Sören</label>
-    <label><input type="checkbox" id="prefLoise" checked /> Loïse</label>
+    <div class="bell-group">
+      <button id="bellSoren" class="bell-btn" title="Recevoir les alertes de Sören">🔔 Sören</button>
+      <button id="bellLoise" class="bell-btn" title="Recevoir les alertes de Loïse">🔔 Loïse</button>
+    </div>
   </div>
   <nav class="tabs" id="tabs">
     <button data-tab="soren" class="active">Sören</button>
