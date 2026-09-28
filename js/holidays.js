@@ -54,7 +54,11 @@ const VACANCES_ZONE_B = [
 ];
 
 function isDateInRange(iso, start, end) {
-  return iso >= start && iso <= end;
+  // "end" est la date de reprise (premier jour de classe), pas un jour de vacances —
+  // borne exclue, comme le documente déjà VACANCES_ZONE_B ci-dessus. Confirmé en
+  // comparant au vrai planning Pronote : le 02/11/2026 (= "end" des vacances de la
+  // Toussaint) est un vrai jour de cours, pas un jour férié/vacances.
+  return iso >= start && iso < end;
 }
 
 /** Retourne le nom de la période de vacances si la date (YYYY-MM-DD) tombe dedans, sinon null. */
