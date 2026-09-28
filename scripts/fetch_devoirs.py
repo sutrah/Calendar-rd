@@ -165,35 +165,6 @@ def is_flagged_eval(raw_lesson):
     return bool(cdt.get("estDevoir")) or bool(cdt.get("estEval"))
 
 
-def diag_lesson_flags(client, key):
-    """Diagnostic temporaire (stderr uniquement, jamais écrit dans out/) : Pronote
-    affiche déjà "Prof absent", "Changement de salle" et "Cours modifié" comme
-    badges dans son propre planning — on cherche ici le(s) champ(s) bruts qui
-    portent cette info (probablement à côté de estAnnule/Statut, sur le modèle
-    d'estEval trouvé à côté d'estDevoir), pour éviter de devoir comparer nous-
-    mêmes la salle du jour à la salle habituelle."""
-    today = date.today()
-    try:
-        pairs = raw_lessons(client, today, today + timedelta(days=DAYS_AHEAD))
-    except Exception as e:
-        print(f"[diag] {key} : impossible de récupérer les cours ({e})", file=sys.stderr)
-        return
-    for lesson, raw in pairs:
-        try:
-            status = get_val(lesson, "status", None)
-            canceled = get_val(lesson, "canceled", False)
-            flagged_keys = {k: v for k, v in raw.items() if re.search(r"salle|modif|statut|annul|chang", k, re.IGNORECASE)}
-            if status or canceled or flagged_keys:
-                subject = get_val(lesson, "subject", None)
-                subject_name = get_val(subject, "name", "") if subject else ""
-                print(
-                    f"[diag] {key} {lesson.start} {subject_name} status={status!r} canceled={canceled} "
-                    f"flagged_keys={json.dumps(flagged_keys, ensure_ascii=False, default=str)[:600]}",
-                    file=sys.stderr,
-                )
-        except Exception as e:
-            print(f"[diag] {key} : cours ignoré ({e})", file=sys.stderr)
-
 
 def fetch_evaluations(client, key):
     today = date.today()
@@ -509,7 +480,6 @@ def main():
             (fetch_devoirs, "devoirs"),
             (fetch_evaluations, "évaluations"),
             (fetch_moyennes, "moyennes"),
-            (diag_lesson_flags, "diag"),
         ):
             try:
                 fn(login_as_child(key), key)
