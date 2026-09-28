@@ -93,12 +93,30 @@ async function initPush() {
     OneSignal.User.PushSubscription.addEventListener('change', refreshBtnState);
 
     btn.addEventListener('click', async () => {
-      if (OneSignal.User.PushSubscription.optedIn) {
+      // On se base sur l'état affiché du bouton (qu'on maîtrise entièrement via
+      // refreshBtnState, y compris la correction forcée ci-dessus), pas sur une
+      // relecture immédiate de OneSignal.User.PushSubscription.optedIn : ce dernier
+      // peut rester momentanément périmé juste après un optOut()/optIn(), ce qui
+      // faisait qu'un clic pour activer était parfois interprété comme "désactiver"
+      // et n'avait visiblement aucun effet.
+      const isCurrentlySubscribed = btn.classList.contains('subscribed');
+      if (isCurrentlySubscribed) {
         await OneSignal.User.PushSubscription.optOut();
         setWantedOptOut(true);
       } else {
         setWantedOptOut(false);
         await OneSignal.Notifications.requestPermission();
+        if (Notification.permission === 'denied') {
+          alert(
+            "Les notifications sont bloquées pour ce site dans les réglages de votre " +
+            "navigateur. Impossible de les réactiver depuis cette page : ouvrez les " +
+            "réglages du site (icône 🔒/ⓘ à côté de l'adresse) et autorisez les " +
+            "notifications, puis réessayez."
+          );
+          setWantedOptOut(true);
+          refreshBtnState();
+          return;
+        }
         await OneSignal.User.PushSubscription.optIn();
         // Par défaut, un nouvel abonné reçoit les alertes des deux enfants —
         // il peut ensuite décocher celles qui ne le concernent pas ci-dessous.
