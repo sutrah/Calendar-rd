@@ -165,7 +165,6 @@ def is_flagged_eval(raw_lesson):
     return bool(cdt.get("estDevoir")) or bool(cdt.get("estEval"))
 
 
-
 def fetch_evaluations(client, key):
     today = date.today()
     try:
@@ -199,6 +198,71 @@ def fetch_evaluations(client, key):
     path = write_json(f"evaluations-{key}.json", {"updatedAt": today.isoformat(), "byDate": by_date})
     total = sum(len(v) for v in by_date.values())
     print(f"Écrit {path} : {total} évaluation(s) sur {len(by_date)} date(s)")
+
+
+# --- Alertes emploi du temps (prof absent, cours annulé, cours modifié, salle) --
+#
+# Confirmé en direct sur le compte de la famille : Pronote fournit déjà, sur
+# chaque cours, un champ Statut (exposé par pronotepy comme lesson.status) qui
+# porte exactement le même texte que les badges affichés dans son propre
+# planning ("Prof. absent", "Prof./pers. absent", "Cours annulé", "Cours
+# modifié", "Changement de salle"...). Pas besoin de comparer nous-mêmes la
+# salle du jour à la salle habituelle : on relit juste ce texte.
+
+ALERT_CATEGORIES = (
+    ("absent", re.compile(r"prof.*absent", re.IGNORECASE)),
+    ("annule", re.compile(r"annul[ée]", re.IGNORECASE)),
+    ("modifie", re.compile(r"modifi[ée]", re.IGNORECASE)),
+    ("salle", re.compile(r"salle", re.IGNORECASE)),
+)
+
+
+def alert_category(status):
+    if not status:
+        return None
+    for category, pattern in ALERT_CATEGORIES:
+        if pattern.search(status):
+            return category
+    return None
+
+
+def fetch_alerts(client, key):
+    today = date.today()
+    try:
+        pairs = raw_lessons(client, today, today + timedelta(days=DAYS_AHEAD))
+    except Exception as e:
+        print(f"[alertes] impossible de récupérer les cours : {e}", file=sys.stderr)
+        return
+
+    by_date = {}
+    for lesson, raw in pairs:
+        try:
+            status = get_val(lesson, "status", None)
+            category = alert_category(status)
+            if not category:
+                continue
+            d = get_val(lesson, "start", None)
+            if d is None:
+                continue
+            subject = get_val(lesson, "subject", None)
+            subject_name = get_val(subject, "name", "") if subject else ""
+            end = get_val(lesson, "end", None)
+            by_date.setdefault(d.date().isoformat(), []).append(
+                {
+                    "subject": subject_name,
+                    "start": d.strftime("%H:%M"),
+                    "end": end.strftime("%H:%M") if end else "",
+                    "status": status,
+                    "category": category,
+                }
+            )
+        except Exception as e:
+            print(f"[alertes] cours ignoré (erreur : {e})", file=sys.stderr)
+    for items in by_date.values():
+        items.sort(key=lambda i: i["start"])
+    path = write_json(f"alerts-{key}.json", {"updatedAt": today.isoformat(), "byDate": by_date})
+    total = sum(len(v) for v in by_date.values())
+    print(f"Écrit {path} : {total} alerte(s) sur {len(by_date)} date(s)")
 
 
 # --- Moyennes ------------------------------------------------------------------
@@ -479,6 +543,7 @@ def main():
         for fn, label in (
             (fetch_devoirs, "devoirs"),
             (fetch_evaluations, "évaluations"),
+            (fetch_alerts, "alertes"),
             (fetch_moyennes, "moyennes"),
         ):
             try:

@@ -103,6 +103,11 @@ votre compte parent, et dépose directement en FTP dans `data/` :
   marqués comme contrôle/devoir **ou** évaluation par compétences dans Pronote
   apparaissent en **orange** dans le planning (case du cours + lettre du jour dans le
   sélecteur de jours / vue Semaine).
+- **Alertes emploi du temps** (`alerts-soren.json` / `alerts-loise.json`) : Pronote marque
+  déjà lui-même certains cours avec un statut (« Prof. absent », « Cours annulé », « Cours
+  modifié », « Changement de salle ») — ce statut est repris tel quel et affiché comme
+  badge coloré directement sur le cours concerné dans le planning (rouge pour une
+  absence/annulation, bleu pour un changement qui n'empêche pas le cours d'avoir lieu).
 - **Moyennes** (`moyennes-soren.json` / `moyennes-loise.json`) : moyenne générale (donut)
   et moyenne par matière, affichées sous les devoirs. Les coefficients utilisés sont ceux
   déjà configurés dans Pronote par l'établissement (qui reflètent normalement les
@@ -192,6 +197,7 @@ data/loise.json        Emploi du temps de Loïse
 data/family.json       Événements famille
 data/devoirs-*.json       Devoirs par enfant (généré par la GitHub Action, pas à éditer)
 data/evaluations-*.json  Évaluations à venir par enfant (généré par la GitHub Action)
+data/alerts-*.json      Prof absent/cours annulé/modifié/salle par enfant (généré par la GitHub Action)
 data/moyennes-*.json     Moyennes par enfant (généré par la GitHub Action)
 data/notifications.json  Notifications du compte parent (généré par la GitHub Action)
 data/hockey-soren.json   Entraînements/tournois SportEasy de Sören (généré par la GitHub Action)

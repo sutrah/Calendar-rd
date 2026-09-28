@@ -24,6 +24,7 @@ async function loadData() {
     evaluationsSoren, evaluationsLoise,
     moyennesSoren, moyennesLoise,
     notifications, menu, hockeySoren, hockeyMatchsSoren,
+    alertsSoren, alertsLoise,
   ] = await Promise.all([
     fetch('data/soren.json').then((r) => r.json()),
     fetch('data/loise.json').then((r) => r.json()),
@@ -38,6 +39,8 @@ async function loadData() {
     fetchJsonSafe('data/menu.json'),
     fetchJsonSafe('data/hockey-soren.json'),
     fetchJsonSafe('data/hockey-matchs-soren.json'),
+    fetchJsonSafe('data/alerts-soren.json'),
+    fetchJsonSafe('data/alerts-loise.json'),
   ]);
   state.data = {
     soren, loise, famille,
@@ -45,6 +48,7 @@ async function loadData() {
     evaluationsSoren, evaluationsLoise,
     moyennesSoren, moyennesLoise,
     notifications, menu, hockeySoren, hockeyMatchsSoren,
+    alertsSoren, alertsLoise,
   };
 }
 
@@ -204,6 +208,30 @@ function isEvalSlot(childKey, iso, slot) {
   );
 }
 
+/* --- Alertes Pronote (prof absent, cours annulé, cours modifié, salle) --- */
+
+const ALERT_LABELS = {
+  absent: 'Prof absent',
+  annule: 'Cours annulé',
+  modifie: 'Cours modifié',
+  salle: 'Salle changée',
+};
+
+function alertsByDate(childKey) {
+  const data = childKey === 'soren' ? state.data.alertsSoren : state.data.alertsLoise;
+  return (data && data.byDate) || {};
+}
+
+function alertForSlot(childKey, iso, slot) {
+  const alerts = alertsByDate(childKey)[iso];
+  if (!alerts) return null;
+  return (
+    alerts.find(
+      (a) => normalizeSubjectName(a.subject) === normalizeSubjectName(slot.subject) && a.start === slot.start
+    ) || null
+  );
+}
+
 /** Le créneau est-il en train de se dérouler maintenant (pour le jour affiché) ? */
 function isSlotNow(slot, date) {
   const now = new Date();
@@ -214,16 +242,24 @@ function isSlotNow(slot, date) {
   return nowMin >= sh * 60 + sm && nowMin < eh * 60 + em;
 }
 
-function slotCard(slot, date, isEval) {
+function slotCard(slot, date, isEval, alert) {
   const card = document.createElement('div');
   const isNow = isSlotNow(slot, date);
-  card.className = 'slot-card' + (slot.added ? ' added' : '') + (isNow ? ' now' : '') + (isEval ? ' eval' : '');
+  card.className =
+    'slot-card' +
+    (slot.added ? ' added' : '') +
+    (isNow ? ' now' : '') +
+    (isEval ? ' eval' : '') +
+    (alert ? ` alert-${alert.category}` : '');
   card.style.setProperty('--card-color', colorForSubject(slot.subject));
   const meta = [slot.teacher, slot.room].filter(Boolean).join(' · ');
+  const alertBadge = alert
+    ? `<span class="alert-badge alert-badge-${alert.category}">${escapeHtml(ALERT_LABELS[alert.category] || alert.status)}</span>`
+    : '';
   card.innerHTML = `
     <div class="slot-time">${slot.start}<br>${slot.end}</div>
     <div class="slot-info">
-      <p class="slot-subject">${slot.subject}${slot.group ? `<span class="slot-group">${slot.group}</span>` : ''}${isNow ? `<span class="now-badge">Maintenant</span>` : ''}${isEval ? `<span class="eval-badge">Éval</span>` : ''}</p>
+      <p class="slot-subject">${slot.subject}${slot.group ? `<span class="slot-group">${slot.group}</span>` : ''}${isNow ? `<span class="now-badge">Maintenant</span>` : ''}${isEval ? `<span class="eval-badge">Éval</span>` : ''}${alertBadge}</p>
       ${meta ? `<p class="slot-meta">${meta}</p>` : ''}
     </div>
   `;
@@ -261,7 +297,7 @@ function renderWeekView(main, child, monday, numDays, childKey) {
       } else {
         const list = document.createElement('div');
         list.className = 'agenda-list compact';
-        slots.forEach((s) => list.appendChild(slotCard(s, d, isEvalSlot(childKey, iso, s))));
+        slots.forEach((s) => list.appendChild(slotCard(s, d, isEvalSlot(childKey, iso, s), alertForSlot(childKey, iso, s))));
         dayWrap.appendChild(list);
       }
     }
@@ -326,7 +362,7 @@ function renderChildTab(main, child) {
       empty.textContent = vacance ? '' : 'Pas de cours prévu ce jour.';
       if (!vacance) list.appendChild(empty);
     } else {
-      slots.forEach((s) => list.appendChild(slotCard(s, state.selectedDate, isEvalSlot(childKey, iso, s))));
+      slots.forEach((s) => list.appendChild(slotCard(s, state.selectedDate, isEvalSlot(childKey, iso, s), alertForSlot(childKey, iso, s))));
     }
     main.appendChild(list);
   }

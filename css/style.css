@@ -748,6 +748,42 @@ nav.tabs button.active .tab-badge {
   vertical-align: middle;
 }
 
+/* Alertes Pronote (prof absent, cours annulé, cours modifié, salle) : mêmes
+   couleurs que les badges natifs de Pronote — rouge pour une absence/annulation,
+   bleu pour un changement qui n'empêche pas le cours d'avoir lieu. */
+.slot-card.alert-absent,
+.slot-card.alert-annule {
+  box-shadow: 0 0 0 2px #991b1b;
+  background: rgba(153, 27, 27, 0.1);
+}
+
+.slot-card.alert-modifie,
+.slot-card.alert-salle {
+  box-shadow: 0 0 0 2px #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.alert-badge {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 4px;
+  padding: 1px 8px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.alert-badge-absent,
+.alert-badge-annule {
+  background: #991b1b;
+}
+
+.alert-badge-modifie,
+.alert-badge-salle {
+  background: #2563eb;
+}
+
 .day-chip.has-eval {
   background: rgba(234, 88, 12, 0.16);
   border-color: #ea580c;
