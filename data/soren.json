@@ -10,7 +10,6 @@
     { "id": "so-lu-q2-3", "day": "lundi", "start": "10:00", "end": "11:00", "subject": "Chinois LV2", "teacher": "Goarzin J.", "room": "219", "week": "Q2" },
     { "id": "so-lu-q2-4", "day": "lundi", "start": "11:00", "end": "12:00", "subject": "Français", "teacher": "Le Tyrant-Soty A.", "room": "107", "week": "Q2" },
 
-    { "id": "so-lu-q1-1", "day": "lundi", "start": "08:00", "end": "09:00", "subject": "Technologie", "teacher": "Delage L.", "room": "Techno 2 (17 PC)", "week": "Q1" },
     { "id": "so-lu-q1-2", "day": "lundi", "start": "09:00", "end": "10:00", "subject": "Français", "teacher": "Le Tyrant-Soty A.", "room": "107", "week": "Q1" },
     { "id": "so-lu-q1-3", "day": "lundi", "start": "10:00", "end": "12:00", "subject": "Éd. Physique & Sport", "teacher": "Hélias Y.", "room": "", "week": "Q1" },
 
