@@ -30,6 +30,9 @@ function loadOneSignalSdk() {
 
 async function initPush() {
   const btn = document.getElementById('subscribeBtn');
+  const prefs = document.getElementById('pushPrefs');
+  const prefSoren = document.getElementById('prefSoren');
+  const prefLoise = document.getElementById('prefLoise');
   if (!btn) return;
 
   if (!pushConfigured()) {
@@ -50,10 +53,16 @@ async function initPush() {
   OneSignalDeferred.push(async (OneSignal) => {
     await OneSignal.init({ appId: ONESIGNAL_APP_ID, allowLocalhostAsSecureOrigin: true });
 
-    const refreshBtnState = () => {
+    const refreshBtnState = async () => {
       const optedIn = OneSignal.User.PushSubscription.optedIn;
       btn.classList.toggle('subscribed', !!optedIn);
       btn.title = optedIn ? 'Notifications activées' : 'Activer les notifications';
+      if (prefs) prefs.hidden = !optedIn;
+      if (optedIn && prefSoren && prefLoise) {
+        const tags = await OneSignal.User.getTags();
+        prefSoren.checked = tags.alert_soren !== 'false';
+        prefLoise.checked = tags.alert_loise !== 'false';
+      }
     };
     refreshBtnState();
     OneSignal.User.PushSubscription.addEventListener('change', refreshBtnState);
@@ -64,7 +73,24 @@ async function initPush() {
       } else {
         await OneSignal.Notifications.requestPermission();
         await OneSignal.User.PushSubscription.optIn();
+        // Par défaut, un nouvel abonné reçoit les alertes des deux enfants —
+        // il peut ensuite décocher celles qui ne le concernent pas ci-dessous.
+        const tags = await OneSignal.User.getTags();
+        if (tags.alert_soren === undefined) await OneSignal.User.addTag('alert_soren', 'true');
+        if (tags.alert_loise === undefined) await OneSignal.User.addTag('alert_loise', 'true');
       }
+      refreshBtnState();
     });
+
+    if (prefSoren) {
+      prefSoren.addEventListener('change', () => {
+        OneSignal.User.addTag('alert_soren', prefSoren.checked ? 'true' : 'false');
+      });
+    }
+    if (prefLoise) {
+      prefLoise.addEventListener('change', () => {
+        OneSignal.User.addTag('alert_loise', prefLoise.checked ? 'true' : 'false');
+      });
+    }
   });
 }

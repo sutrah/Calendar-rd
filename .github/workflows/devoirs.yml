@@ -33,6 +33,7 @@ jobs:
           PRONOTE_USERNAME: ${{ secrets.PRONOTE_USERNAME }}
           PRONOTE_PASSWORD: ${{ secrets.PRONOTE_PASSWORD }}
           HOCKEY_ICS_URL_SOREN: ${{ secrets.HOCKEY_ICS_URL_SOREN }}
+          ONESIGNAL_REST_API_KEY: ${{ secrets.ONESIGNAL_REST_API_KEY }}
         run: python scripts/fetch_devoirs.py
 
       - name: Déployer les devoirs en FTP

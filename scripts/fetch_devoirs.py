@@ -31,6 +31,7 @@ import os
 import re
 import sys
 import unicodedata
+import urllib.error
 import urllib.request
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -41,6 +42,15 @@ PARIS_TZ = ZoneInfo("Europe/Paris")
 
 OUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "out")
 DAYS_AHEAD = 14
+
+# Site déjà déployé (public, en lecture) : sert à relire l'état précédent d'un
+# fichier avant de l'écraser, pour savoir ce qui est vraiment nouveau (ex. ne
+# notifier qu'une seule fois par alerte plutôt qu'à chaque exécution).
+SITE_DATA_BASE = "https://games.preprod-eskem-studio.xyz/cal/data/"
+
+# Public par nature (embarqué côté client dans js/push.js) — contrairement à
+# ONESIGNAL_REST_API_KEY (secret GitHub), ce n'est pas une donnée sensible.
+ONESIGNAL_APP_ID = "41619346-065e-4c78-9b6b-cf8c3e5bc639"
 
 
 def normalize(text):
@@ -84,6 +94,17 @@ def write_json(name, payload):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
     return path
+
+
+def fetch_live_json(name, default):
+    """Relit un fichier déjà déployé sur le site public (avant de l'écraser),
+    pour comparer à l'état précédent. Renvoie `default` si le fichier n'existe
+    pas encore ou si la requête échoue (jamais fatal)."""
+    try:
+        with urllib.request.urlopen(SITE_DATA_BASE + name, timeout=15) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, TimeoutError):
+        return default
 
 
 # --- Devoirs -----------------------------------------------------------------
@@ -263,6 +284,95 @@ def fetch_alerts(client, key):
     path = write_json(f"alerts-{key}.json", {"updatedAt": today.isoformat(), "byDate": by_date})
     total = sum(len(v) for v in by_date.values())
     print(f"Écrit {path} : {total} alerte(s) sur {len(by_date)} date(s)")
+
+    try:
+        notify_new_alerts(key, by_date, today)
+    except Exception as e:
+        print(f"[alertes] notification push ignorée (erreur : {e})", file=sys.stderr)
+
+
+# --- Notification push automatique (OneSignal) --------------------------------
+#
+# Ne pousse que ce qui concerne aujourd'hui ou demain (le reste attend d'être
+# sur le point d'arriver — inutile de prévenir 10 jours à l'avance) et
+# uniquement les alertes réellement nouvelles : "alerts-notified-{key}.json"
+# garde la trace de ce qui a déjà été poussé (le script tourne 5x/jour) pour
+# ne jamais renvoyer deux fois la même notification. Ciblage par enfant via un
+# tag OneSignal (alert_soren / alert_loise) posé côté navigateur (js/push.js) —
+# chacun ne reçoit donc que les alertes du ou des enfants qu'il a choisis.
+
+ALERT_LABELS = {
+    "absent": "Prof absent",
+    "annule": "Cours annulé",
+    "modifie": "Cours modifié",
+    "salle": "Salle changée",
+}
+
+CHILD_LABELS = {"soren": "Sören", "loise": "Loïse"}
+
+
+def alert_key(iso_date, item):
+    return f"{iso_date}|{item['start']}|{item['subject']}|{item['category']}"
+
+
+def send_push_notification(key, title, message):
+    api_key = os.environ.get("ONESIGNAL_REST_API_KEY")
+    if not api_key:
+        print("[push] ONESIGNAL_REST_API_KEY absent, notification ignorée", file=sys.stderr)
+        return
+    payload = {
+        "app_id": ONESIGNAL_APP_ID,
+        "headings": {"fr": title},
+        "contents": {"fr": message},
+        "filters": [{"field": "tag", "key": f"alert_{key}", "relation": "=", "value": "true"}],
+        "url": "https://games.preprod-eskem-studio.xyz/cal/",
+    }
+    req = urllib.request.Request(
+        "https://api.onesignal.com/notifications",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Key {api_key}"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            print(f"[push] {key} : notification envoyée ({resp.status})")
+    except urllib.error.HTTPError as e:
+        print(f"[push] {key} : échec envoi ({e.code} {e.read().decode('utf-8', 'replace')})", file=sys.stderr)
+    except urllib.error.URLError as e:
+        print(f"[push] {key} : échec envoi ({e})", file=sys.stderr)
+
+
+def notify_new_alerts(key, by_date, today):
+    tomorrow = today + timedelta(days=1)
+    candidates = [
+        (iso, item)
+        for iso in (today.isoformat(), tomorrow.isoformat())
+        for item in by_date.get(iso, [])
+    ]
+    if not candidates:
+        return
+
+    notified_path = f"alerts-notified-{key}.json"
+    previous = fetch_live_json(notified_path, {"keys": []})
+    already_notified = set(previous.get("keys", []))
+
+    new_items = [(iso, item) for iso, item in candidates if alert_key(iso, item) not in already_notified]
+    if new_items:
+        lines = []
+        for iso, item in new_items:
+            when = "Aujourd'hui" if iso == today.isoformat() else "Demain"
+            label = ALERT_LABELS.get(item["category"], item["status"])
+            lines.append(f"{when} {item['start']} {item['subject']} : {label}")
+        title = f"{CHILD_LABELS.get(key, key)} — emploi du temps"
+        send_push_notification(key, title, "\n".join(lines))
+
+    # On ne garde que les 3 derniers jours dans le fichier de suivi : largement
+    # assez pour ne jamais repousser aujourd'hui/demain deux fois, sans laisser
+    # le fichier grossir indéfiniment.
+    cutoff = (today - timedelta(days=3)).isoformat()
+    kept = {k for k in already_notified if k.split("|", 1)[0] >= cutoff}
+    kept.update(alert_key(iso, item) for iso, item in candidates)
+    write_json(notified_path, {"updatedAt": today.isoformat(), "keys": sorted(kept)})
 
 
 # --- Moyennes ------------------------------------------------------------------

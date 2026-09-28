@@ -69,20 +69,36 @@ besoin de les ajouter à la main.
 
 ## Notifications push (bouton 🔔)
 
-Pas de serveur = pas d'envoi automatique intégré, mais le bouton 🔔 permet à chacun des
-4 membres de la famille de s'abonner aux notifications via un service gratuit,
-**OneSignal**, puis vous envoyez une notification manuellement (2 clics) quand besoin
-(ex. « Sortie scolaire de Loïse demain, penser au pique-nique »).
+Le bouton 🔔 permet à chacun des 4 membres de la famille de s'abonner aux notifications
+via un service gratuit, **OneSignal**. Deux sources de notifications :
+
+1. **Manuelle** : vous envoyez une notification vous-même (2 clics) quand besoin (ex.
+   « Sortie scolaire de Loïse demain, penser au pique-nique ») depuis le dashboard
+   OneSignal → **Messages → New Push**.
+2. **Automatique** : la GitHub Action « Devoirs Pronote » envoie elle-même une
+   notification dès qu'elle détecte une alerte emploi du temps (prof absent, cours
+   annulé/modifié, changement de salle) pour **aujourd'hui ou demain** — voir « Alertes
+   emploi du temps » ci-dessous.
+
+Après s'être abonné, chacun peut choisir via deux cases à cocher (« Alertes de : Sören /
+Loïse », affichées sous le bouton 🔔 une fois abonné) quel(s) enfant(s) le concernent —
+les deux sont cochées par défaut. Loïse ou Sören peuvent donc, sur leur propre téléphone,
+ne garder que leurs propres alertes ; les parents gardent tout par défaut.
 
 Configuration (à faire une seule fois) :
 
-1. Créez un compte gratuit sur https://onesignal.com
-2. Créez une app de type **Web Push**, renseignez l'URL de votre site.
-3. Copiez votre **OneSignal App ID**.
-4. Ouvrez `js/push.js`, remplacez `PLACEHOLDER_ONESIGNAL_APP_ID` par cet App ID.
-5. Ré-uploadez `js/push.js` en FTP.
-6. Chaque membre de la famille ouvre le site et clique sur 🔔 pour s'abonner.
-7. Pour envoyer une notification : dashboard OneSignal → **Messages → New Push**.
+1. Créez un compte gratuit sur https://onesignal.com, créez une app **Web Push**,
+   renseignez l'URL de votre site — **sans sous-dossier** (ex. `https://votre-domaine.com`,
+   pas `.../cal`), OneSignal l'exige.
+2. Sur l'écran d'installation du SDK, ignorez le script d'installation proposé (déjà
+   codé à la main dans `js/push.js` + `OneSignalSDKWorker.js`) et cliquez directement sur
+   « I've installed the SDK ».
+3. Copiez l'**App ID** (déjà configuré dans `js/push.js`, à refaire seulement si vous
+   recréez une app) et la **REST API Key** (Settings → Keys & IDs → **+ Add key** ; la
+   valeur ne s'affiche qu'une seule fois à la création).
+4. Créez le secret GitHub `ONESIGNAL_REST_API_KEY` (Settings → Secrets and variables →
+   Actions) avec cette clé — jamais dans le code, l'avertissement d'OneSignal le rappelle.
+5. Chaque membre de la famille ouvre le site et clique sur 🔔 pour s'abonner.
 
 ⚠️ Sur iPhone/iPad, Safari exige que le site soit ajouté à l'écran d'accueil (voir
 « Mise en ligne » ci-dessus) avant que les notifications fonctionnent (iOS 16.4+).
@@ -108,6 +124,9 @@ votre compte parent, et dépose directement en FTP dans `data/` :
   modifié », « Changement de salle ») — ce statut est repris tel quel et affiché comme
   badge coloré directement sur le cours concerné dans le planning (rouge pour une
   absence/annulation, bleu pour un changement qui n'empêche pas le cours d'avoir lieu).
+  Les alertes du jour même ou du lendemain déclenchent aussi une **notification push**
+  automatique (voir « Notifications push » ci-dessous) — chacune une seule fois, jamais
+  répétée aux exécutions suivantes (suivi dans `alerts-notified-*.json`).
 - **Moyennes** (`moyennes-soren.json` / `moyennes-loise.json`) : moyenne générale (donut)
   et moyenne par matière, affichées sous les devoirs. Les coefficients utilisés sont ceux
   déjà configurés dans Pronote par l'établissement (qui reflètent normalement les
@@ -118,8 +137,10 @@ votre compte parent, et dépose directement en FTP dans `data/` :
   « vu » localement sur l'appareil, dès l'ouverture de l'onglet).
 Secrets GitHub nécessaires (Settings → Secrets and variables → Actions), déjà créés :
 `PRONOTE_URL`, `PRONOTE_USERNAME`, `PRONOTE_PASSWORD` (votre compte **parent** Pronote,
-qui voit les deux enfants), `FTP_USERNAME`, `FTP_PASSWORD`. L'hôte FTP et le dossier
-distant (`/games/cal/data/`) sont écrits en clair dans `.github/workflows/devoirs.yml`.
+qui voit les deux enfants), `FTP_USERNAME`, `FTP_PASSWORD`, `ONESIGNAL_REST_API_KEY`
+(notifications push automatiques, voir « Notifications push » ci-dessus). L'hôte FTP et
+le dossier distant (`/games/cal/data/`) sont écrits en clair dans
+`.github/workflows/devoirs.yml`.
 
 Points importants :
 - Cette intégration utilise **pronotepy**, une bibliothèque non-officielle (Pronote n'a
@@ -198,6 +219,7 @@ data/family.json       Événements famille
 data/devoirs-*.json       Devoirs par enfant (généré par la GitHub Action, pas à éditer)
 data/evaluations-*.json  Évaluations à venir par enfant (généré par la GitHub Action)
 data/alerts-*.json      Prof absent/cours annulé/modifié/salle par enfant (généré par la GitHub Action)
+data/alerts-notified-*.json  Suivi des alertes déjà poussées en notification (généré, interne)
 data/moyennes-*.json     Moyennes par enfant (généré par la GitHub Action)
 data/notifications.json  Notifications du compte parent (généré par la GitHub Action)
 data/hockey-soren.json   Entraînements/tournois SportEasy de Sören (généré par la GitHub Action)
