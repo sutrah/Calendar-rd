@@ -91,6 +91,13 @@ header.topbar {
   padding-bottom: 8px;
 }
 
+/* Sans ça, "display: flex" ci-dessus l'emporte sur la règle par défaut du navigateur
+   pour [hidden] (même spécificité, mais déclarée par le site) : la case ne se
+   cachait donc jamais vraiment après un clic sur 🔔 pour se désabonner. */
+.push-prefs[hidden] {
+  display: none;
+}
+
 .push-prefs label {
   display: inline-flex;
   align-items: center;
