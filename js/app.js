@@ -678,11 +678,19 @@ function renderFamilleTab(main) {
   main.appendChild(list2);
 }
 
+function updateBellVisibility() {
+  const bellSoren = document.getElementById('bellSoren');
+  const bellLoise = document.getElementById('bellLoise');
+  if (bellSoren) bellSoren.hidden = state.tab !== 'soren';
+  if (bellLoise) bellLoise.hidden = state.tab !== 'loise';
+}
+
 function render() {
   const main = document.getElementById('main');
   main.innerHTML = '';
   renderTabs();
   updateNotifBadge();
+  updateBellVisibility();
   if (state.tab === 'soren') renderChildTab(main, state.data.soren);
   else if (state.tab === 'loise') renderChildTab(main, state.data.loise);
   else if (state.tab === 'notifications') renderNotificationsTab(main);
