@@ -240,17 +240,34 @@ def fetch_lessons(client, key):
         print(f"[emploi du temps] impossible de récupérer les cours : {e}", file=sys.stderr)
         return
 
-    by_date = {(today + timedelta(days=i)).isoformat(): [] for i in range(DAYS_AHEAD + 1)}
+    # Pronote conserve parfois deux cours superposés exactement au même horaire (un cours
+    # normal marqué "Cours annulé", remplacé par un évènement spécial — ex. une évaluation
+    # nationale) — sa propre grille n'affiche alors que celui dont "num" est le plus grand,
+    # documenté par pronotepy lui-même : "For the same lesson time, the biggest num is the
+    # one shown on pronote". Confirmé en direct : sans cette règle, on affichait le cours
+    # annulé que Pronote masque, à la place de l'évènement qui le remplace vraiment.
+    best_by_slot = {}
     for lesson, raw in pairs:
         try:
             d = get_val(lesson, "start", None)
             if d is None:
                 continue
             iso = d.date().isoformat()
-            if iso not in by_date:
-                continue
+            slot_key = (iso, d.strftime("%H:%M"))
+            num = get_val(lesson, "num", 0) or 0
+            if slot_key not in best_by_slot or num > best_by_slot[slot_key][0]:
+                best_by_slot[slot_key] = (num, lesson)
+        except Exception as e:
+            print(f"[emploi du temps] cours ignoré (erreur : {e})", file=sys.stderr)
+
+    by_date = {(today + timedelta(days=i)).isoformat(): [] for i in range(DAYS_AHEAD + 1)}
+    for (iso, _), (_, lesson) in best_by_slot.items():
+        if iso not in by_date:
+            continue
+        try:
             subject = get_val(lesson, "subject", None)
             subject_name = get_val(subject, "name", "") if subject else ""
+            d = get_val(lesson, "start", None)
             end = get_val(lesson, "end", None)
             by_date[iso].append(
                 {
