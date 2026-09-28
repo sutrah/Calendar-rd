@@ -12,7 +12,7 @@
  * (bouton Partager > "Sur l'écran d'accueil") avant que les notifications marchent (iOS 16.4+).
  */
 
-const ONESIGNAL_APP_ID = 'PLACEHOLDER_ONESIGNAL_APP_ID';
+const ONESIGNAL_APP_ID = '41619346-065e-4c78-9b6b-cf8c3e5bc639';
 
 function pushConfigured() {
   return ONESIGNAL_APP_ID && !ONESIGNAL_APP_ID.startsWith('PLACEHOLDER');
