@@ -549,28 +549,35 @@ function renderMenuSection(main, menuData, selectedDate) {
 /* --- Moyennes (moyenne générale + par matière, calculées par Pronote) --- */
 
 function renderMoyennesSection(main, moyennesData) {
-  if (!moyennesData || moyennesData.overall == null) return;
+  if (!moyennesData || !moyennesData.subjects || moyennesData.subjects.length === 0) return;
 
   const title = document.createElement('div');
   title.className = 'section-title';
   title.textContent = `📊 Moyennes${moyennesData.periodName ? ' — ' + moyennesData.periodName : ''}`;
   main.appendChild(title);
 
-  const outOf = 20;
-  const pct = Math.max(0, Math.min(1, moyennesData.overall / outOf));
-  const r = 42;
-  const c = 2 * Math.PI * r;
+  // moyennesData.overall ne vient que de la vraie moyenne générale calculée par
+  // Pronote (moyGenerale) : certains établissements ne la fournissent pas, auquel
+  // cas on affiche seulement le détail par matière ci-dessous, sans donut (toute
+  // moyenne qu'on recalculerait nous-mêmes sans les coefficients de l'établissement
+  // ne correspondrait pas à ce qu'affiche Pronote).
+  if (moyennesData.overall != null) {
+    const outOf = 20;
+    const pct = Math.max(0, Math.min(1, moyennesData.overall / outOf));
+    const r = 42;
+    const c = 2 * Math.PI * r;
 
-  const donutWrap = document.createElement('div');
-  donutWrap.className = 'donut-wrap';
-  donutWrap.innerHTML = `
-    <svg viewBox="0 0 100 100" class="donut">
-      <circle cx="50" cy="50" r="${r}" class="donut-bg" />
-      <circle cx="50" cy="50" r="${r}" class="donut-fg" stroke-dasharray="${(pct * c).toFixed(1)} ${c.toFixed(1)}" />
-    </svg>
-    <div class="donut-label">${moyennesData.overall.toFixed(1)}<span>/20</span></div>
-  `;
-  main.appendChild(donutWrap);
+    const donutWrap = document.createElement('div');
+    donutWrap.className = 'donut-wrap';
+    donutWrap.innerHTML = `
+      <svg viewBox="0 0 100 100" class="donut">
+        <circle cx="50" cy="50" r="${r}" class="donut-bg" />
+        <circle cx="50" cy="50" r="${r}" class="donut-fg" stroke-dasharray="${(pct * c).toFixed(1)} ${c.toFixed(1)}" />
+      </svg>
+      <div class="donut-label">${moyennesData.overall.toFixed(1)}<span>/20</span></div>
+    `;
+    main.appendChild(donutWrap);
+  }
 
   if (moyennesData.subjects && moyennesData.subjects.length > 0) {
     const list = document.createElement('div');

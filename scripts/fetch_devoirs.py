@@ -476,17 +476,24 @@ def fetch_moyennes(client, key):
         except Exception as e:
             print(f"[moyennes] matière ignorée (erreur : {e})", file=sys.stderr)
 
-    # overall_average lit moyGenerale, la moyenne générale que Pronote calcule
-    # lui-même en pondérant chaque matière par son coefficient (configuré par
-    # l'établissement — normalement les coefficients du bac pour Loïse) ; on ne
-    # recalcule donc rien ici. Vérifié en direct sur les deux comptes : Pronote la
-    # fournit systématiquement, ce repli n'est donc a priori jamais utilisé — il ne
-    # reste que pour le cas où moyGenerale serait absente (établissement qui n'a pas
-    # configuré de coefficients), auquel cas la moyenne devient une simple moyenne
-    # non pondérée des matières, comme le fait pronotepy lui-même dans ce cas.
-    overall = to_float(get_val(period, "overall_average", None))
-    if overall is None and subjects:
-        overall = round(sum(s["student"] for s in subjects) / len(subjects), 2)
+    # period.overall_average (pronotepy) lit moyGenerale quand Pronote la fournit,
+    # mais SINON calcule elle-même en silence une moyenne non pondérée des matières
+    # déjà notées — sans tenir compte des coefficients — ce qui ne correspond pas à
+    # ce qu'affiche l'appli Pronote et nous a fait afficher un chiffre faux (constaté
+    # en direct : notre 18.33 == moyenne simple des 5 matières notées, alors que
+    # moyGenerale n'était pas dans la réponse). On interroge donc nous-mêmes le
+    # webservice pour ne garder que la vraie moyenne générale de Pronote, et on
+    # n'affiche rien plutôt qu'une approximation quand elle est absente.
+    overall = None
+    try:
+        raw = period._client.post(
+            "DernieresNotes", 198, {"Periode": {"N": period.id, "L": period.name}}
+        )
+        moy_generale = raw["dataSec"]["data"].get("moyGenerale")
+        if moy_generale:
+            overall = to_float(moy_generale["V"])
+    except Exception as e:
+        print(f"[moyennes] moyenne générale indisponible (erreur : {e})", file=sys.stderr)
 
     path = write_json(
         f"moyennes-{key}.json",
